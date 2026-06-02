@@ -1,0 +1,8 @@
+node_modules/
+.wxt/
+.output/
+dist/
+playwright-report/
+test-results/
+*.log
+.DS_Store

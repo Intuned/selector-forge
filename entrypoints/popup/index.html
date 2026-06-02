@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Intuned Selector</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Intuned Selector</h1>
+      <span id="auth-state" class="auth-chip" data-state="unknown">…</span>
+    </header>
+
+    <section class="modes" aria-label="Selection mode">
+      <button id="pick-single" type="button">Single</button>
+      <button id="pick-list" type="button">List</button>
+      <button id="pick-multiple" type="button" disabled title="Coming soon">
+        Multiple
+      </button>
+    </section>
+
+    <p id="status" class="status">No selection yet.</p>
+
+    <section id="results" class="results" aria-live="polite"></section>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

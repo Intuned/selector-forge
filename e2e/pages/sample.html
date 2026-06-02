@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Selector extension sample page</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 24px; max-width: 720px; }
+      h1 { font-size: 18px; }
+      .item { padding: 6px 10px; border-bottom: 1px solid #eee; }
+      .item:last-child { border-bottom: none; }
+    </style>
+  </head>
+  <body>
+    <h1>Sample page for selector-extension e2e</h1>
+
+    <section>
+      <h2>Single-mode targets</h2>
+      <button id="primary" data-testid="primary-btn">Primary</button>
+      <a href="#" data-testid="nav-link">Nav link</a>
+      <label for="email">Email <input id="email" type="email" /></label>
+    </section>
+
+    <section>
+      <h2>List-mode targets</h2>
+      <ul id="people">
+        <li class="item" data-id="1"><span class="name">Ada</span></li>
+        <li class="item" data-id="2"><span class="name">Linus</span></li>
+        <li class="item" data-id="3"><span class="name">Grace</span></li>
+      </ul>
+    </section>
+  </body>
+</html>
