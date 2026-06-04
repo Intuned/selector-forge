@@ -12,6 +12,41 @@
       <span id="auth-state" class="auth-chip" data-state="unknown">…</span>
     </header>
 
+    <div id="user-info" class="user-info" hidden>
+      <img id="user-avatar" class="user-avatar" alt="" />
+      <div class="user-meta">
+        <span id="user-name" class="user-name"></span>
+        <span id="user-email" class="user-email"></span>
+      </div>
+      <span id="user-method" class="method-chip"></span>
+      <button id="sign-out" type="button" class="link">Sign out</button>
+    </div>
+
+    <section id="signin" class="signin" hidden>
+      <p class="status">Sign in to use Intuned Selector.</p>
+      <button id="signin-btn" type="button">Sign in with browser</button>
+
+      <details id="apikey-details" class="apikey">
+        <summary>Use an API key</summary>
+        <label class="field">
+          <span>API key</span>
+          <input id="api-key-input" type="password" autocomplete="off"
+            placeholder="in1_…" />
+        </label>
+        <label class="field">
+          <span>Workspace ID</span>
+          <input id="workspace-id-input" type="text" autocomplete="off"
+            placeholder="00000000-0000-0000-0000-000000000000" />
+        </label>
+        <button id="api-key-save" type="button">Save API key</button>
+        <p id="api-key-error" class="error-text" hidden></p>
+      </details>
+
+      <button id="signin-retry" type="button" class="link">
+        I’ve signed in — retry
+      </button>
+    </section>
+
     <section class="modes" aria-label="Selection mode">
       <button id="pick-single" type="button">Single</button>
       <button id="pick-list" type="button">List</button>

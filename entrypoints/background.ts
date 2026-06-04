@@ -1,29 +1,29 @@
-import type { Message } from "../lib/messaging/messages";
+import {
+  configureApiKey,
+  initAuth,
+  signOut,
+  useBrowserSession,
+} from "../lib/auth";
+import { registerHandlers, type StartPickResult } from "../lib/messaging/messages";
+import type { PickMode } from "../lib/types";
 
-// background service worker
 export default defineBackground(() => {
-  browser.runtime.onMessage.addListener(
-    (raw: unknown, _sender, sendResponse): boolean | undefined => {
-      const message = raw as Message;
-      switch (message?.type) {
-        case "START_PICK":
-          void handleStartPick(message.mode).then(sendResponse);
-          return true; // keep channel open
-
-        case "SELECTOR_REQUEST":
-          return true;
-
-        case "OPEN_POPUP":
-          return false;
-      }
-      return undefined;
-    }
-  );
+  registerHandlers({
+    startPick: (mode) => handleStartPick(mode),
+    selectorRequest: () => {}, // stub
+    openPopup: () => {}, // stub
+    // Runs in the background so the dev.intuned.io cookie attaches. Returning the
+    // promise lets errors reject on the caller, so the UI can tell "signed out"
+    // from "server down".
+    initializeAuth: () => initAuth(),
+    signIn: () => void useBrowserSession(), // switch to session + open login tab
+    setApiKey: ({ apiKey, workspaceId }) =>
+      configureApiKey(apiKey, workspaceId),
+    signOut: () => signOut(),
+  });
 });
 
-async function handleStartPick(
-  mode: string
-): Promise<{ ok: boolean; error?: string }> {
+async function handleStartPick(_mode: PickMode): Promise<StartPickResult> {
   try {
     return { ok: true };
   } catch (err) {

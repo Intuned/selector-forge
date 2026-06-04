@@ -16,7 +16,7 @@ export default defineConfig({
       // Lets the background service worker call the local selector-ranking backend
       // cross-origin. Replace with the deployed API host before shipping (and gate
       // behind workspace auth + usage metering — deploy blocker).
-      host_permissions: ["http://localhost:3000/*"],
+      host_permissions: ["http://localhost:3000/*", "https://dev.intuned.io/*"],
     };
 
     // E2E-only build: grant host access so Playwright can inject without a user gesture.

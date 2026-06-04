@@ -20,6 +20,11 @@
     source-map "^0.7.4"
     yargs "^17.5.1"
 
+"@aklinker1/zero-serialize-error@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@aklinker1/zero-serialize-error/-/zero-serialize-error-1.0.2.tgz#4da5ee6a5f81ef3af3c1b6a51d104b471f7e5ed0"
+  integrity sha512-hGVkgFqb8Zs80JJ7MOSCGQXH2SyWfwnJwOl8Qpp1lUdkp5T7GTf8QrAMib42Hnzx6HtnNYdmNaSSg4MQy+MDRQ==
+
 "@babel/code-frame@^7.10.4", "@babel/code-frame@^7.21.4":
   version "7.29.7"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.29.7.tgz#f2fbbfea87c44a21590ec515b778b2c26d8866e7"
@@ -704,6 +709,14 @@
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@webext-core/match-patterns/-/match-patterns-1.0.3.tgz#d590e5063e21a6a83d245700dfeb5489fbd99a77"
   integrity sha512-NY39ACqCxdKBmHgw361M9pfJma8e4AZo20w9AY+5ZjIj1W2dvXC8J31G5fjfOGbulW9w4WKpT8fPooi0mLkn9A==
+
+"@webext-core/messaging@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@webext-core/messaging/-/messaging-3.0.2.tgz#c9b74d634c897cceca52e0c73ca8c41615f15ff3"
+  integrity sha512-tUeF0s+3d/Am6jKuXpET973ZatN3sD3mp6Fy/3GYzIQG3TQbc1Ia9I4x7lwysLSL4teroMVkoyFwafmbrGn/WA==
+  dependencies:
+    "@aklinker1/zero-serialize-error" "^1.0.2"
+    webextension-polyfill ">=0.10.0"
 
 "@wxt-dev/browser@^0.1.37", "@wxt-dev/browser@^0.1.42":
   version "0.1.42"
@@ -2975,6 +2988,11 @@ web-ext-run@^0.2.4:
     update-notifier "7.3.1"
     watchpack "2.4.4"
     zip-dir "2.0.0"
+
+webextension-polyfill@>=0.10.0:
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/webextension-polyfill/-/webextension-polyfill-0.12.0.tgz#f62c57d2cd42524e9fbdcee494c034cae34a3d69"
+  integrity sha512-97TBmpoWJEE+3nFBQ4VocyCdLKfw54rFaJ6EVQYLBCXqCIpLSZkwGgASpv4oPt9gdKCJ80RJlcmNzNn008Ag6Q==
 
 webidl-conversions@^7.0.0:
   version "7.0.0"

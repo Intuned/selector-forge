@@ -29,5 +29,8 @@
     "typescript": "^5.6.0",
     "vitest": "^3.2.0",
     "wxt": "^0.20.0"
+  },
+  "dependencies": {
+    "@webext-core/messaging": "^3.0.2"
   }
 }
