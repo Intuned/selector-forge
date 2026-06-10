@@ -10,6 +10,7 @@ import type {
   SelectorErrorRecord,
 } from "@/lib/state";
 import type { AuthState } from "@/lib/auth";
+import type { SelectorCreationUsage } from "@/lib/graphql/usage";
 
 /* ──────────────────────────── enums ──────────────────────────────────── */
 
@@ -29,6 +30,9 @@ export enum BackgroundMessageType {
   SignIn = "bg:signIn",
   SignOut = "bg:signOut",
   SetApiKey = "bg:setApiKey",
+
+  // billing
+  GetSelectorCreationUsage = "bg:getSelectorCreationUsage",
 }
 
 // messages addressed to content scripts (from background)
@@ -104,6 +108,8 @@ export type BackgroundProtocolMap = {
     apiKey: string;
     workspaceId: string;
   }) => AuthState;
+
+  [BackgroundMessageType.GetSelectorCreationUsage]: () => SelectorCreationUsage;
 };
 
 /* ───────────────────── content protocol map ──────────────────────────── */

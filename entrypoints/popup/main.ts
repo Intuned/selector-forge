@@ -52,11 +52,41 @@ function renderAuthed(method: AuthMethod, identity: AuthIdentity | null): void {
   setChip("authenticated", "Signed in");
   setModesEnabled(true);
   el("status").textContent = "No selection yet.";
+  void loadUsage();
+}
+
+/** Fetch + render selector-creation usage (used / included) for the workspace. */
+async function loadUsage(): Promise<void> {
+  const section = el<HTMLElement>("usage");
+  const value = el<HTMLSpanElement>("usage-value");
+  const fill = el<HTMLDivElement>("usage-bar-fill");
+  section.hidden = false;
+  value.textContent = "…";
+  fill.style.width = "0%";
+  try {
+    const { used, included } = await messagingClient.sendMessageToBackground(
+      BackgroundMessageType.GetSelectorCreationUsage,
+      undefined as never
+    );
+    value.textContent =
+      included > 0
+        ? `${used.toLocaleString()} / ${included.toLocaleString()}`
+        : used.toLocaleString();
+    const pct =
+      included > 0 ? Math.min(100, Math.round((used / included) * 100)) : 0;
+    fill.style.width = `${pct}%`;
+  } catch (error) {
+    // Surface the real reason (auth/workspace/network) instead of hiding it.
+    console.error("Failed to load selector-creation usage:", error);
+    value.textContent = "Unavailable";
+    value.title = error instanceof Error ? error.message : String(error);
+  }
 }
 
 function renderSignedOut(state?: AuthState): void {
   el("user-info").hidden = true;
   el("signin").hidden = false;
+  el("usage").hidden = true;
   setChip("unauthenticated", "Signed out");
   setModesEnabled(false);
 
@@ -73,7 +103,8 @@ function renderSignedOut(state?: AuthState): void {
 
 function renderError(message: string): void {
   el("user-info").hidden = true;
-  el("signin").hidden = false;
+  el("signin").hidden = false; // keep a way to retry
+  el("usage").hidden = true;
   el("status").textContent = message;
   setChip("error", "Error");
   setModesEnabled(false);

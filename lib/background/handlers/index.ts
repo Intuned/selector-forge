@@ -12,6 +12,7 @@ import {
   handleSetApiKey,
 } from "./auth";
 import { handleCancelPickerSession } from "./cancelSelectorPickerSession";
+import { handleGetSelectorCreationUsage } from "./usage";
 
 export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.BootstrapPopup]: handleBootstrapPopup,
@@ -23,4 +24,5 @@ export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.SignIn]: handleSignIn,
   [BackgroundMessageType.SignOut]: handleSignOut,
   [BackgroundMessageType.SetApiKey]: handleSetApiKey,
+  [BackgroundMessageType.GetSelectorCreationUsage]: handleGetSelectorCreationUsage,
 };
