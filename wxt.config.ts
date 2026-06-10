@@ -13,10 +13,16 @@ export default defineConfig({
       // Least privilege: activeTab is granted on the popup gesture; scripting lets the
       // background inject the picker on demand. No <all_urls> in the shipped build.
       permissions: ["storage", "activeTab", "scripting"],
-      // Lets the background service worker call the local selector-ranking backend
-      // cross-origin. Replace with the deployed API host before shipping (and gate
-      // behind workspace auth + usage metering — deploy blocker).
-      host_permissions: ["http://localhost:3000/*", "https://dev.intuned.io/*"],
+      // Lets the background service worker call the API host cross-origin. Prod
+      // (`app.intuned.io`) is the default base URL; `dev.intuned.io` and localhost
+      // are kept so `config.apiBase` overrides (see `lib/config.ts`) can target them
+      // without a manifest change. The localhost entry also covers the
+      // selector-create endpoint until it moves behind `getApiBase()` + auth.
+      host_permissions: [
+        "https://app.intuned.io/*",
+        "https://dev.intuned.io/*",
+        "http://localhost:3000/*",
+      ],
     };
 
     // E2E-only build: grant host access so Playwright can inject without a user gesture.
@@ -35,5 +41,10 @@ export default defineConfig({
     }
 
     return manifest;
+  },
+  dev: {
+    server: {
+      port: 7877,
+    },
   },
 });

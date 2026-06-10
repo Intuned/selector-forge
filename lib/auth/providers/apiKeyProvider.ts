@@ -1,4 +1,4 @@
-import { API_BASE } from "../../config";
+import { getApiBase } from "@/lib/config";
 import { decodeJwt, isJwtExpired } from "../jwt";
 import {
   clearApiKey,
@@ -17,7 +17,7 @@ import {
 
 /**
  * API-key auth (mirrors the CLI's ApiKeyAuthProvider). The key is exchanged for a
- * short-lived JWT at `GET {API_BASE}/api/v1/workspace/{workspaceId}/auth`
+ * short-lived JWT at `GET {apiBase}/api/v1/workspace/{workspaceId}/auth`
  * (`x-api-key` header) and cached. REST uses the key directly; Bearer flows use
  * the JWT.
  */
@@ -35,7 +35,8 @@ async function exchangeApiKey(
 ): Promise<string> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}/api/v1/workspace/${workspaceId}/auth`, {
+    const apiBase = await getApiBase();
+    response = await fetch(`${apiBase}/api/v1/workspace/${workspaceId}/auth`, {
       method: "GET",
       headers: { "x-api-key": apiKey },
     });

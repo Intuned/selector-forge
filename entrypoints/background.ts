@@ -1,32 +1,37 @@
+import { AgentLoopController } from "@/lib/agent";
 import {
-  configureApiKey,
-  initAuth,
-  signOut,
-  useBrowserSession,
-} from "../lib/auth";
-import { registerHandlers, type StartPickResult } from "../lib/messaging/messages";
-import type { PickMode } from "../lib/types";
+  backgroundHandlers,
+  registerBackgroundHandlers,
+  registerSessionTabWatcher,
+  type BackgroundContext,
+} from "@/lib/background";
+import { createBackgroundMessagingClient } from "@/lib/messaging";
+import { SelectorState } from "@/lib/state";
 
 export default defineBackground(() => {
-  registerHandlers({
-    startPick: (mode) => handleStartPick(mode),
-    selectorRequest: () => {}, // stub
-    openPopup: () => {}, // stub
-    // Runs in the background so the dev.intuned.io cookie attaches. Returning the
-    // promise lets errors reject on the caller, so the UI can tell "signed out"
-    // from "server down".
-    initializeAuth: () => initAuth(),
-    signIn: () => void useBrowserSession(), // switch to session + open login tab
-    setApiKey: ({ apiKey, workspaceId }) =>
-      configureApiKey(apiKey, workspaceId),
-    signOut: () => signOut(),
+  const state = new SelectorState();
+  const messaging = createBackgroundMessagingClient();
+  const agentLoopController = new AgentLoopController({
+    state,
+    backgroundMessagingClient: messaging,
   });
-});
 
-async function handleStartPick(_mode: PickMode): Promise<StartPickResult> {
-  try {
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: String(err) };
+  const context: BackgroundContext = {
+    state,
+    agentLoopController,
+    backgroundMessagingClient: messaging,
+  };
+
+  void state.hydrate();
+
+  registerBackgroundHandlers(backgroundHandlers, context);
+  registerSessionTabWatcher(context);
+
+  // e2e only bridge to drive background handlers with the same tab id when having the popup-as-a-tab
+  if (import.meta.env.MODE === "e2e") {
+    (globalThis as unknown as { __intunedE2E: unknown }).__intunedE2E = {
+      handlers: backgroundHandlers,
+      context,
+    };
   }
-}
+});

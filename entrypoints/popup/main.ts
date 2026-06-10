@@ -1,5 +1,12 @@
-import { sendMessage } from "../../lib/messaging/messages";
-import type { AuthIdentity, AuthMethod, AuthState } from "../../lib/auth";
+import type { FinalSelectorResult, SelectorCreateState } from "@/lib/state";
+import type { AuthIdentity, AuthMethod, AuthState } from "@/lib/auth";
+import {
+  BackgroundMessageType,
+  PopupMessageType,
+  createPopupMessagingClient,
+} from "@/lib/messaging";
+
+const messagingClient = createPopupMessagingClient();
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -21,7 +28,6 @@ function setChip(state: ChipState, label: string): void {
   chip.textContent = label;
 }
 
-/** Pick buttons are enabled only when signed in ("multiple" stays disabled). */
 function setModesEnabled(enabled: boolean): void {
   for (const id of ["pick-single", "pick-list"]) {
     el<HTMLButtonElement>(id).disabled = !enabled;
@@ -36,10 +42,8 @@ function renderAuthed(method: AuthMethod, identity: AuthIdentity | null): void {
   avatar.hidden = !identity?.picture;
   if (identity?.picture) avatar.src = identity.picture;
 
-  // session has a name/picture; api-key/token only have email + workspace
   const displayName = identity?.name ?? identity?.nickname;
   el("user-name").textContent = displayName ?? identity?.email ?? "Signed in";
-  // don't repeat the email when it's already the name line
   el("user-email").textContent = displayName
     ? identity?.email ?? identity?.workspaceId ?? ""
     : identity?.workspaceId ?? "";
@@ -56,7 +60,6 @@ function renderSignedOut(state?: AuthState): void {
   setChip("unauthenticated", "Signed out");
   setModesEnabled(false);
 
-  // A configured method that failed (bad API key, expired token): show why.
   if (state?.error) {
     el("status").textContent = state.error;
     if (state.method === "api-key") {
@@ -70,7 +73,7 @@ function renderSignedOut(state?: AuthState): void {
 
 function renderError(message: string): void {
   el("user-info").hidden = true;
-  el("signin").hidden = false; // keep a way to retry
+  el("signin").hidden = false;
   el("status").textContent = message;
   setChip("error", "Error");
   setModesEnabled(false);
@@ -88,12 +91,83 @@ function clearApiKeyError(): void {
   node.hidden = true;
 }
 
-async function checkAuth(): Promise<void> {
+function applyAuthState(state: AuthState): void {
+  if (state.authenticated && state.method)
+    renderAuthed(state.method, state.identity);
+  else renderSignedOut(state);
+}
+
+function renderFinalResult(result: FinalSelectorResult): void {
+  const results = el<HTMLElement>("results");
+  results.replaceChildren();
+
+  if (
+    (result.status === "ok" || result.status === "fallback") &&
+    result.bestSelector
+  ) {
+    const { type, value } = result.bestSelector;
+    el("status").textContent =
+      result.status === "fallback" ? "Fallback selector" : "Selector ready";
+
+    const row = document.createElement("div");
+    row.className = "result-row";
+
+    const code = document.createElement("code");
+    code.className = "result-code";
+    code.textContent = value;
+    code.title = `${type}: ${value}`;
+
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "result-copy";
+    copy.textContent = "Copy";
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(value);
+        const original = copy.textContent;
+        copy.textContent = "Copied";
+        copy.disabled = true;
+        setTimeout(() => {
+          copy.textContent = original;
+          copy.disabled = false;
+        }, 1200);
+      } catch {
+        copy.textContent = "Copy failed";
+        setTimeout(() => (copy.textContent = "Copy"), 1200);
+      }
+    });
+
+    row.append(code, copy);
+    results.append(row);
+  } else {
+    el("status").textContent = result.note ?? "Could not generate selector.";
+  }
+}
+
+function renderSessionSnapshot(session: SelectorCreateState | null): void {
+  if (!session) return;
+  if (session.finalResult) {
+    renderFinalResult(session.finalResult);
+    return;
+  }
+  if (session.status === "picking") {
+    el("status").textContent = "Pick an element on the page.";
+    return;
+  }
+  if (session.status === "running" || session.status === "awaiting_browser") {
+    el("status").textContent = "Generating selector…";
+  }
+}
+
+async function bootstrap(): Promise<void> {
   setChip("unknown", "…");
   try {
-    const state = await sendMessage("initializeAuth");
-    if (state.authenticated && state.method) renderAuthed(state.method, state.identity);
-    else renderSignedOut(state);
+    const snapshot = await messagingClient.sendMessageToBackground(
+      BackgroundMessageType.BootstrapPopup,
+      undefined as never
+    );
+    applyAuthState(snapshot.auth);
+    renderSessionSnapshot(snapshot.session);
   } catch {
     renderError("Couldn’t reach Intuned. Check your connection and retry.");
   }
@@ -112,35 +186,96 @@ async function saveApiKey(): Promise<void> {
   button.disabled = true;
   button.textContent = "Saving…";
   try {
-    const state = await sendMessage("setApiKey", { apiKey, workspaceId });
+    const state = await messagingClient.sendMessageToBackground(
+      BackgroundMessageType.SetApiKey,
+      {
+        apiKey,
+        workspaceId,
+      }
+    );
     el<HTMLInputElement>("api-key-input").value = "";
-    if (state.authenticated && state.method) renderAuthed(state.method, state.identity);
-    else renderSignedOut(state);
+    applyAuthState(state);
   } catch (error) {
-    showApiKeyError(error instanceof Error ? error.message : "Could not save API key.");
+    showApiKeyError(
+      error instanceof Error ? error.message : "Could not save API key."
+    );
   } finally {
     button.disabled = false;
     button.textContent = "Save API key";
   }
 }
 
+async function startSession(mode: "single" | "list"): Promise<void> {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (!tab?.url) {
+    el("status").textContent = "No active tab to attach to.";
+    return;
+  }
+  const url = new URL(tab.url);
+  try {
+    await messagingClient.sendMessageToBackground(
+      BackgroundMessageType.StartPickerSession,
+      {
+        mode,
+        page: {
+          url: tab.url,
+          origin: url.origin,
+          title: tab.title,
+          capturedAt: new Date().toISOString(),
+        },
+      }
+    );
+    window.close();
+  } catch (error) {
+    el("status").textContent =
+      error instanceof Error ? error.message : "Could not start session.";
+  }
+}
+
 function wireControls(): void {
   el<HTMLButtonElement>("signin-btn").addEventListener("click", () => {
-    void sendMessage("signIn");
+    void messagingClient.sendMessageToBackground(
+      BackgroundMessageType.SignIn,
+      undefined as never
+    );
   });
   el<HTMLButtonElement>("signin-retry").addEventListener("click", () => {
-    void checkAuth();
+    void bootstrap();
   });
   el<HTMLButtonElement>("api-key-save").addEventListener("click", () => {
     void saveApiKey();
   });
   el<HTMLButtonElement>("sign-out").addEventListener("click", async () => {
-    const state = await sendMessage("signOut");
-    if (state.authenticated && state.method) renderAuthed(state.method, state.identity);
-    else renderSignedOut(state);
+    const state = await messagingClient.sendMessageToBackground(
+      BackgroundMessageType.SignOut,
+      undefined as never
+    );
+    applyAuthState(state);
   });
+
+  el<HTMLButtonElement>("pick-single").addEventListener("click", () => {
+    void startSession("single");
+  });
+  el<HTMLButtonElement>("pick-list").addEventListener("click", () => {
+    void startSession("list");
+  });
+
+  // BG-pushed events: re-render when the active session changes or settles.
+  // Renderers TODO; subscribe is wired so future code only adds the UI side.
+  messagingClient.onEvent(PopupMessageType.SessionStateChanged, () => {
+    /* TODO: render in-flight session */
+  });
+  messagingClient.onEvent(
+    PopupMessageType.SelectorGenerationSettled,
+    ({ sessionId, result }) => {
+      console.log("[selector-extension] settled", { sessionId, result });
+      renderFinalResult(result);
+    }
+  );
 }
 
-// The popup reloads on every open, so this runs each time its UI appears.
 wireControls();
-void checkAuth();
+void bootstrap();

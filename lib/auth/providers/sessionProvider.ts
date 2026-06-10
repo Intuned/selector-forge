@@ -1,4 +1,3 @@
-import { API_BASE } from "../../config";
 import { decodeJwt } from "../jwt";
 import {
   clearSessionBearerCache,
@@ -15,9 +14,9 @@ import {
 } from "../types";
 
 /**
- * Browser/cookie login (the always-available fallback). Uses the dev.intuned.io
- * session cookie; fetches MUST run in the background worker so the HttpOnly cookie
- * attaches.
+ * Browser/cookie login (the always-available fallback). Uses the configured
+ * app.intuned.io session cookie; fetches MUST run in the background worker so
+ * the HttpOnly cookie attaches.
  */
 
 /** Default bearer lifetime when the session token carries no readable `exp`. */
@@ -35,7 +34,7 @@ function sessionTokenExpiry(token: string): number {
 export async function fetchUser(): Promise<AuthUser | null> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}/api/auth/me`, {
+    response = await fetch("https://dev.intuned.io/api/auth/me", {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -56,7 +55,7 @@ export async function fetchUser(): Promise<AuthUser | null> {
 export async function fetchSession(): Promise<SessionTokens | null> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}/api/auth/session`, {
+    response = await fetch("https://dev.intuned.io/api/auth/session", {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -76,7 +75,7 @@ export async function fetchSession(): Promise<SessionTokens | null> {
 /** Opens the login page; completing it sets the session cookie. */
 export async function openSignInPage(): Promise<void> {
   await browser.tabs.create({
-    url: `${API_BASE}/api/auth/login`,
+    url: "https://dev.intuned.io/api/auth/login",
     active: true,
   });
 }
@@ -84,7 +83,7 @@ export async function openSignInPage(): Promise<void> {
 /** Opens the logout page to clear the server session cookie. */
 export async function openSignOutPage(): Promise<void> {
   await browser.tabs.create({
-    url: `${API_BASE}/api/auth/logout`,
+    url: "https://dev.intuned.io/api/auth/logout",
     active: true,
   });
 }

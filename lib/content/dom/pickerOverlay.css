@@ -1,0 +1,57 @@
+:host { all: initial; }
+.layer { position: fixed; inset: 0; pointer-events: none; }
+.hover-box, .sel-box {
+  position: fixed;
+  pointer-events: none;
+  box-sizing: border-box;
+  transition: top 60ms linear, left 60ms linear, width 60ms linear, height 60ms linear;
+}
+.hover-box { background: rgba(79, 70, 229, 0.18); outline: 2px solid #4f46e5; display: none; }
+.sel-box { background: rgba(22, 163, 74, 0.22); outline: 2px solid #16a34a; }
+.toolbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  pointer-events: auto;
+  background: #111827;
+  color: #f9fafb;
+  font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  cursor: move;
+  user-select: none;
+}
+.toolbar.dragging { transition: none; opacity: 0.9; }
+.toolbar .grip {
+  width: 8px;
+  height: 14px;
+  background:
+    radial-gradient(circle, #6b7280 1px, transparent 1.2px) 0 0/4px 4px;
+  opacity: 0.6;
+  flex: 0 0 auto;
+}
+.toolbar .status { opacity: 0.85; margin-right: 4px; }
+.toolbar .kbd {
+  font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 1px 4px;
+  border: 1px solid #374151;
+  border-radius: 3px;
+  background: #1f2937;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+.toolbar button {
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.toolbar .cancel { background: transparent; color: #fca5a5; border-color: #7f1d1d; }
+.toolbar .cancel:hover { background: #7f1d1d22; }
+.toolbar .done { background: #16a34a; color: white; }
+.toolbar .done:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; }
