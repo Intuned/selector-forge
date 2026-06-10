@@ -1,7 +1,7 @@
 /**
  * Auth entry point. A provider model (see ./manager) backs three methods: token,
  * api-key, and session. Fetches run in the background worker so the
- * dev.intuned.io session cookie attaches.
+ * apiBase session cookie attaches.
  */
 
 export {
@@ -9,6 +9,7 @@ export {
   configureToken,
   getAccessToken,
   getApiHeaders,
+  getApiQueryParams,
   initAuth,
   refreshAccessToken,
   signOut,

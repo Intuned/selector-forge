@@ -1,4 +1,7 @@
-import { ApiKeyAuthProvider, setApiKeyCredentials } from "./providers/apiKeyProvider";
+import {
+  ApiKeyAuthProvider,
+  setApiKeyCredentials,
+} from "./providers/apiKeyProvider";
 import {
   openSignInPage,
   openSignOutPage,
@@ -54,7 +57,12 @@ export async function initAuth(): Promise<AuthState> {
   try {
     const resolution = await provider.resolve();
     if (resolution.status === "unauthenticated") {
-      return { authenticated: false, method: provider.type, identity: null, hasToken: false };
+      return {
+        authenticated: false,
+        method: provider.type,
+        identity: null,
+        hasToken: false,
+      };
     }
     return {
       authenticated: true,
@@ -96,19 +104,39 @@ export async function refreshAccessToken(): Promise<string> {
   return credentials.accessToken;
 }
 
-/** REST auth headers: `x-api-key` for the API-key method, else Bearer. */
-export async function getApiHeaders(): Promise<Record<string, string>> {
+/**
+ * REST auth headers from the active method: `x-api-key` (api-key) or Bearer (token).
+ * Session auth returns undefined — there is nothing to attach; callers must send the
+ * request with `credentials: "include"` so the browser injects the session cookie.
+ * (The session bearer exists for the GraphQL/Apollo client, not REST.)
+ */
+export async function getApiHeaders(): Promise<
+  Record<string, string> | undefined
+> {
   const provider = await getActiveProvider();
   if (provider.getApiHeaders) return provider.getApiHeaders();
-  const credentials = await provider.getCredentials();
-  return { Authorization: `Bearer ${credentials.accessToken}` };
+}
+
+/**
+ * Query params REST must append: `workspaceId` for the API-key method (the backend's
+ * APIKeyAuthHandler validates the key against it); undefined for the others, whose
+ * workspace comes from the bearer claims or the session.
+ */
+export async function getApiQueryParams(): Promise<
+  Record<string, string> | undefined
+> {
+  const provider = await getActiveProvider();
+  if (provider.getApiQueryParams) return provider.getApiQueryParams();
 }
 
 /**
  * Configure API-key auth: validate + store the key (throws on a bad key, leaving
  * the active method unchanged), then make api-key the active method.
  */
-export async function configureApiKey(apiKey: string, workspaceId: string): Promise<AuthState> {
+export async function configureApiKey(
+  apiKey: string,
+  workspaceId: string
+): Promise<AuthState> {
   await setApiKeyCredentials(apiKey, workspaceId);
   await setMethod("api-key");
   return initAuth();
@@ -150,7 +178,12 @@ export async function signOut(): Promise<AuthState> {
 
   if (provider.type === "session") {
     await openSignOutPage();
-    return { authenticated: false, method: "session", identity: null, hasToken: false };
+    return {
+      authenticated: false,
+      method: "session",
+      identity: null,
+      hasToken: false,
+    };
   }
   return initAuth();
 }

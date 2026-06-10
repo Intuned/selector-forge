@@ -97,8 +97,17 @@ export interface AuthProvider {
    */
   refreshCredentials?(): Promise<AuthCredentials>;
 
-  /** Auth headers for REST (api-key: `x-api-key`; others: Bearer). */
+  /**
+   * Auth headers for REST (api-key: `x-api-key`; token: Bearer). Session omits this:
+   * REST then relies on the browser-injected cookie (`credentials: "include"`).
+   */
   getApiHeaders?(): Promise<Record<string, string>>;
+
+  /**
+   * Query params REST must append. The api-key method requires `workspaceId` —
+   * the backend's APIKeyAuthHandler validates the key against it. Others omit this.
+   */
+  getApiQueryParams?(): Promise<Record<string, string>>;
 
   /**
    * Remove every piece of credential material this provider persists. Required so that

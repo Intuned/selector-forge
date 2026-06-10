@@ -14,14 +14,13 @@ export default defineConfig({
       // background inject the picker on demand. No <all_urls> in the shipped build.
       permissions: ["storage", "activeTab", "scripting"],
       // Lets the background service worker call the API host cross-origin. Prod
-      // (`app.intuned.io`) is the default base URL; `dev.intuned.io` and localhost
-      // are kept so `config.apiBase` overrides (see `lib/config.ts`) can target them
-      // without a manifest change. The localhost entry also covers the
-      // selector-create endpoint until it moves behind `getApiBase()` + auth.
+      // (`app.intuned.io`) is the default base URL; `dev.intuned.io` is kept so a
+      // `config.apiBase` override (see `lib/config.ts`) can target it without a
+      // manifest change.
       host_permissions: [
+        "http://localhost:3000/*",
         "https://app.intuned.io/*",
         "https://dev.intuned.io/*",
-        "http://localhost:3000/*",
       ],
     };
 

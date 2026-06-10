@@ -255,6 +255,22 @@ describe("ApiKeyAuthProvider", () => {
     });
   });
 
+  describe("getApiQueryParams", () => {
+    it("returns the stored workspaceId when configured", async () => {
+      await setApiKey("in1_good", "ws-1");
+      await expect(provider.getApiQueryParams()).resolves.toEqual({
+        workspaceId: "ws-1",
+      });
+    });
+
+    it("throws when no workspace id is stored", async () => {
+      await expect(provider.getApiQueryParams()).rejects.toMatchObject({
+        name: "AuthRequestError",
+        status: 400,
+      });
+    });
+  });
+
   describe("clearCredentials", () => {
     it("removes the stored api key and workspace id", async () => {
       await setApiKey("in1_good", "ws-1");

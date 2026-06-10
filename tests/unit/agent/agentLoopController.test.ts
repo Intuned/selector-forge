@@ -16,6 +16,22 @@ import {
   silenceConsole,
 } from "../background/harness";
 
+// ── auth mock ────────────────────────────────────────────────────────────────
+// The loop attaches headers from the active auth method; mock the module so
+// the providers' own fetches don't consume the scripted fetch responses.
+
+const { getApiHeadersMock, getApiQueryParamsMock } = vi.hoisted(() => ({
+  getApiHeadersMock: vi.fn<() => Promise<Record<string, string> | undefined>>(),
+  getApiQueryParamsMock: vi.fn<
+    () => Promise<Record<string, string> | undefined>
+  >(),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  getApiHeaders: getApiHeadersMock,
+  getApiQueryParams: getApiQueryParamsMock,
+}));
+
 // ── fetch script ─────────────────────────────────────────────────────────────
 
 type FetchScript = SelectorCreateResponse[];
@@ -159,6 +175,11 @@ describe("AgentLoopController", () => {
   beforeEach(() => {
     fakeBrowser.reset();
     silenceConsole();
+    // Module-level vi.fn mocks survive restoreAllMocks: reset them by hand.
+    getApiHeadersMock.mockReset().mockImplementation(async () => ({
+      Authorization: "Bearer test-token",
+    }));
+    getApiQueryParamsMock.mockReset().mockResolvedValue(undefined);
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -287,6 +308,80 @@ describe("AgentLoopController", () => {
         testCalls.map((c) => (c.data as { requestId: string }).requestId)
       ).toEqual(["req-1", "req-2"]);
       expect(state.get()?.status).toBe("done");
+    });
+  });
+
+  describe("auth", () => {
+    it("a configured method sends its auth headers and omits cookies", async () => {
+      const { state, controller, sessionId } = setupLoop();
+      const fetchMock = scriptFetch([doneOk(state.get()!)]);
+
+      await controller.runAgentLoop(sessionId);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            Authorization: "Bearer test-token",
+          }),
+          credentials: "omit",
+        })
+      );
+    });
+
+    it("session auth (no headers) relies on browser-injected cookies", async () => {
+      const { state, controller, sessionId } = setupLoop();
+      getApiHeadersMock.mockResolvedValue(undefined);
+      const fetchMock = scriptFetch([doneOk(state.get()!)]);
+
+      await controller.runAgentLoop(sessionId);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ credentials: "include" })
+      );
+      const init = fetchMock.mock.calls[0][1] as RequestInit;
+      expect(init.headers).toEqual({ "Content-Type": "application/json" });
+    });
+
+    it("appends the method's auth query params to the create URL (api-key workspace scoping)", async () => {
+      const { state, controller, sessionId } = setupLoop();
+      getApiHeadersMock.mockResolvedValue({ "x-api-key": "in1_key" });
+      getApiQueryParamsMock.mockResolvedValue({ workspaceId: "ws-1" });
+      const fetchMock = scriptFetch([doneOk(state.get()!)]);
+
+      await controller.runAgentLoop(sessionId);
+
+      const url = new URL(fetchMock.mock.calls[0][0] as string);
+      expect(url.pathname).toBe("/api/selectors/create");
+      expect(url.searchParams.get("workspaceId")).toBe("ws-1");
+    });
+
+    it("no auth query params leaves the create URL bare", async () => {
+      const { state, controller, sessionId } = setupLoop();
+      const fetchMock = scriptFetch([doneOk(state.get()!)]);
+
+      await controller.runAgentLoop(sessionId);
+
+      const url = new URL(fetchMock.mock.calls[0][0] as string);
+      expect(url.search).toBe("");
+    });
+
+    it("signed out (no credentials) settles the session with the auth error", async () => {
+      const { messaging, controller, sessionId } = setupLoop();
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      getApiHeadersMock.mockRejectedValue(new Error("Not signed in"));
+
+      await controller.runAgentLoop(sessionId);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      const settled = messaging.popupCalls[0];
+      expect(settled?.type).toBe(PopupMessageType.SelectorGenerationSettled);
+      expect((settled?.data as { result: { note?: string } }).result.note).toBe(
+        "Not signed in"
+      );
     });
   });
 

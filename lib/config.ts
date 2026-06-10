@@ -1,4 +1,5 @@
 const DEFAULT_API_BASE = "http://localhost:3000";
+export const GRAPHQL_API = "http://localhost:8080/v1/graphql";
 const API_BASE_OVERRIDE_KEY = "config.apiBase";
 
 export async function getApiBase(): Promise<string> {
@@ -19,5 +20,3 @@ export async function getSelectorCreateUrl(): Promise<string> {
   const apiBase = await getApiBase();
   return `${apiBase}/api/selectors/create`;
 }
-
-export const GRAPHQL_API = "http://localhost:8082/v1/graphql";

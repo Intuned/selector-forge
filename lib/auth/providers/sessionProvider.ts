@@ -1,3 +1,4 @@
+import { getApiBase } from "@/lib/config";
 import { decodeJwt } from "../jwt";
 import {
   clearSessionBearerCache,
@@ -27,14 +28,16 @@ const REFRESH_BEFORE_EXPIRY_MS = 30 * 1000;
 /** Expiry (ms epoch) from the token's `exp`, or a default TTL when it has none. */
 function sessionTokenExpiry(token: string): number {
   const decoded = decodeJwt(token);
-  return decoded?.exp ? decoded.exp * 1000 : Date.now() + DEFAULT_SESSION_TOKEN_TTL_MS;
+  return decoded?.exp
+    ? decoded.exp * 1000
+    : Date.now() + DEFAULT_SESSION_TOKEN_TTL_MS;
 }
 
 /** `GET /api/auth/me`: 200 -> user, 401 -> null, else throws. */
 export async function fetchUser(): Promise<AuthUser | null> {
   let response: Response;
   try {
-    response = await fetch("https://dev.intuned.io/api/auth/me", {
+    response = await fetch(`${await getApiBase()}/api/auth/me`, {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -55,7 +58,7 @@ export async function fetchUser(): Promise<AuthUser | null> {
 export async function fetchSession(): Promise<SessionTokens | null> {
   let response: Response;
   try {
-    response = await fetch("https://dev.intuned.io/api/auth/session", {
+    response = await fetch(`${await getApiBase()}/api/auth/session`, {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -75,7 +78,7 @@ export async function fetchSession(): Promise<SessionTokens | null> {
 /** Opens the login page; completing it sets the session cookie. */
 export async function openSignInPage(): Promise<void> {
   await browser.tabs.create({
-    url: "https://dev.intuned.io/api/auth/login",
+    url: `${await getApiBase()}/api/auth/login`,
     active: true,
   });
 }
@@ -83,7 +86,7 @@ export async function openSignInPage(): Promise<void> {
 /** Opens the logout page to clear the server session cookie. */
 export async function openSignOutPage(): Promise<void> {
   await browser.tabs.create({
-    url: "https://dev.intuned.io/api/auth/logout",
+    url: `${await getApiBase()}/api/auth/logout`,
     active: true,
   });
 }

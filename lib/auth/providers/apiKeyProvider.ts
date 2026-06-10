@@ -177,6 +177,18 @@ export class ApiKeyAuthProvider implements AuthProvider {
     return { "x-api-key": apiKey };
   }
 
+  /** The backend validates the key against a `workspaceId` query param. */
+  async getApiQueryParams(): Promise<Record<string, string>> {
+    const workspaceId = await getWorkspaceId();
+    if (!workspaceId) {
+      throw new AuthRequestError(
+        "Workspace ID is required when using an API key.",
+        400
+      );
+    }
+    return { workspaceId };
+  }
+
   async clearCredentials(): Promise<void> {
     await clearApiKey();
   }

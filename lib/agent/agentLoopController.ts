@@ -1,3 +1,4 @@
+import { getApiHeaders, getApiQueryParams } from "@/lib/auth";
 import { getSelectorCreateUrl } from "@/lib/config";
 import {
   ContentMessageType,
@@ -8,6 +9,7 @@ import type {
   BrowserResultRecord,
   FinalSelectorResult,
   SelectorCreateResponse,
+  SelectorCreateState,
   SelectorState,
   SelectorStatus,
 } from "@/lib/state";
@@ -157,7 +159,6 @@ export class AgentLoopController {
     result: FinalSelectorResult
   ): Promise<void> {
     this.status = "idle";
-    
 
     if (this.deps.state.get()) {
       this.deps.state.update((prev) => ({
@@ -200,12 +201,8 @@ export class AgentLoopController {
     if (!state) throw new Error("No state in singleton to step");
 
     const url = await getSelectorCreateUrl();
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state),
-      signal,
-    });
+
+    const res = await this.postState(url, state, signal);
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -217,5 +214,37 @@ export class AgentLoopController {
     }
 
     return (await res.json()) as SelectorCreateResponse;
+  }
+
+  /**
+   * POST the session state with auth from the active method: `x-api-key` or
+   * Bearer headers for configured methods, or no headers for session auth,
+   * where the browser-injected cookie is the credential. Cookies are omitted
+   * when headers are present so the explicit credential stays authoritative
+   * (the backend checks the session cookie first). The api-key method also
+   * appends its `workspaceId` query param — the backend's APIKeyAuthHandler
+   * requires it to validate the key. Throws AuthRequestError when signed
+   * out / unconfigured; the loop surfaces its message to the popup.
+   */
+  private async postState(
+    url: string,
+    state: SelectorCreateState,
+    signal: AbortSignal
+  ): Promise<Response> {
+    const authHeaders = await getApiHeaders();
+    const authQueryParams = await getApiQueryParams();
+
+    const target = new URL(url);
+    for (const [key, value] of Object.entries(authQueryParams ?? {})) {
+      target.searchParams.set(key, value);
+    }
+
+    return fetch(target.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      credentials: authHeaders ? "omit" : "include",
+      body: JSON.stringify(state),
+      signal,
+    });
   }
 }

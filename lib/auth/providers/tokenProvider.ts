@@ -47,6 +47,12 @@ export class TokenAuthProvider implements AuthProvider {
     return resolution.credentials;
   }
 
+  /** The raw JWT is the only credential — REST sends it as a Bearer (no cookie exists). */
+  async getApiHeaders(): Promise<Record<string, string>> {
+    const credentials = await this.getCredentials();
+    return { Authorization: `Bearer ${credentials.accessToken}` };
+  }
+
   async clearCredentials(): Promise<void> {
     await clearToken();
   }
