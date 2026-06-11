@@ -1,4 +1,13 @@
-:host { all: initial; }
+:host {
+  all: initial;
+  /* Intuned brand tokens (mirror popup/ui.module.css). */
+  --primary: hsl(17 90% 57%);
+  --primary-hover: hsl(17 90% 52%);
+  --fg: #1c1c1f;
+  --muted: #6b7280;
+  --border: #ebebee;
+  --border-strong: #dcdce0;
+}
 .layer { position: fixed; inset: 0; pointer-events: none; }
 .hover-box, .sel-box {
   position: fixed;
@@ -6,52 +15,75 @@
   box-sizing: border-box;
   transition: top 60ms linear, left 60ms linear, width 60ms linear, height 60ms linear;
 }
-.hover-box { background: rgba(79, 70, 229, 0.18); outline: 2px solid #4f46e5; display: none; }
+.hover-box { background: hsla(17, 90%, 57%, 0.16); outline: 2px solid var(--primary); display: none; }
 .sel-box { background: rgba(22, 163, 74, 0.22); outline: 2px solid #16a34a; }
 .toolbar {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 380px;
   pointer-events: auto;
-  background: #111827;
-  color: #f9fafb;
-  font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: #ffffff;
+  color: var(--fg);
+  font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 7px 6px 5px;
   display: flex;
   gap: 8px;
   align-items: center;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14);
   cursor: move;
   user-select: none;
 }
-.toolbar.dragging { transition: none; opacity: 0.9; }
+.toolbar.dragging { transition: none; opacity: 0.95; }
 .toolbar .grip {
   width: 8px;
-  height: 14px;
+  height: 16px;
   background:
-    radial-gradient(circle, #6b7280 1px, transparent 1.2px) 0 0/4px 4px;
-  opacity: 0.6;
+    radial-gradient(circle, #c4c4cc 1px, transparent 1.4px) 0 1px/4px 5px;
+  background-repeat: repeat;
+  opacity: 0.9;
   flex: 0 0 auto;
 }
-.toolbar .status { opacity: 0.85; margin-right: 4px; }
+.toolbar .logo {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 16px;
+  display: block;
+}
+.toolbar .logo svg { display: block; width: 100%; height: 100%; }
+.toolbar .status {
+  color: var(--fg);
+  font-weight: 600;
+  white-space: nowrap;
+  /* Push the action buttons to the right edge so the wider bar reads as a
+     real toolbar (label left, actions right). */
+  margin-right: auto;
+}
 .toolbar .kbd {
   font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   padding: 1px 4px;
-  border: 1px solid #374151;
   border-radius: 3px;
-  background: #1f2937;
-  opacity: 0.7;
-  margin-left: 4px;
+  margin-left: 5px;
 }
 .toolbar button {
   font: inherit;
-  padding: 4px 10px;
+  font-weight: 600;
+  padding: 5px 10px;
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.toolbar .cancel { background: transparent; color: #fca5a5; border-color: #7f1d1d; }
-.toolbar .cancel:hover { background: #7f1d1d22; }
-.toolbar .done { background: #16a34a; color: white; }
-.toolbar .done:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; }
+.toolbar .cancel { background: #fff; color: var(--muted); border-color: var(--border-strong); }
+.toolbar .cancel:hover { background: #f4f4f5; color: var(--fg); }
+.toolbar .cancel .kbd { background: #f0f0f2; color: var(--muted); }
+.toolbar .done { background: var(--primary); color: #fff; }
+.toolbar .done:hover:not(:disabled) { background: var(--primary-hover); }
+.toolbar .done .kbd { background: rgba(255,255,255,0.24); color: #fff; }
+.toolbar .done:disabled { background: #f0f0f2; color: #b0b0b8; cursor: not-allowed; }
+.toolbar .done:disabled .kbd { background: #e6e6ea; color: #b0b0b8; }

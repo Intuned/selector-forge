@@ -14,6 +14,8 @@ export {
   selectorCreateResponseSchema,
   selectorCreateStateSchema,
   selectorErrorSchema,
+  selectorFeedbackSchema,
+  selectorHistoryEntrySchema,
   selectorModeSchema,
   selectorResultSchema,
   selectorSchema,
@@ -35,6 +37,8 @@ export {
   type SelectorCreateResponse,
   type SelectorCreateState,
   type SelectorErrorRecord,
+  type SelectorFeedback,
+  type SelectorHistoryEntry,
   type SelectorMode,
   type SelectorRecord,
   type SelectorResultRecord,
@@ -44,3 +48,8 @@ export {
   type ToolCallRecord,
 } from "./schema";
 export { SelectorState, type SessionMeta } from "./state";
+export {
+  appendSelectorHistory,
+  loadSelectorHistory,
+  updateSelectorHistoryEntry,
+} from "./history";

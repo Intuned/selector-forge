@@ -8,6 +8,8 @@ import type {
   TargetRecord,
   FinalSelectorResult,
   SelectorErrorRecord,
+  SelectorFeedback,
+  SelectorHistoryEntry,
 } from "@/lib/state";
 import type { AuthState } from "@/lib/auth";
 import type { SelectorCreationUsage } from "@/lib/graphql/usage";
@@ -25,6 +27,12 @@ export enum BackgroundMessageType {
   StartAgent = "bg:startAgent",
   ReportPickerError = "bg:reportPickerError",
 
+  // popup -> background -> content
+  HighlightSelector = "bg:highlightSelector",
+
+  // popup -> background -> LangSmith
+  SubmitSelectorFeedback = "bg:submitSelectorFeedback",
+
   // auth (kept on the BG surface — same registration pattern)
   InitializeAuth = "bg:initializeAuth",
   SignIn = "bg:signIn",
@@ -40,6 +48,7 @@ export enum ContentMessageType {
   ActivatePicker = "cs:activatePicker",
   DeactivatePicker = "cs:deactivatePicker",
   TestSelectors = "cs:testSelectors",
+  HighlightSelector = "cs:highlightSelector",
 }
 
 // messages addressed to the popup UI (from background)
@@ -76,9 +85,19 @@ export interface ReportPickerErrorRequest {
   error: SelectorErrorRecord;
 }
 
+export interface SubmitSelectorFeedbackRequest {
+  langsmithRunId: string;
+  value: SelectorFeedback;
+  comment?: string;
+}
+export interface SubmitSelectorFeedbackResult {
+  ok: boolean;
+}
+
 export interface BootstrapPopupResponse {
   auth: AuthState;
   session: SelectorCreateState | null;
+  history: SelectorHistoryEntry[];
 }
 
 export type BackgroundProtocolMap = {
@@ -99,6 +118,14 @@ export type BackgroundProtocolMap = {
   [BackgroundMessageType.ReportPickerError]: (
     data: ReportPickerErrorRequest
   ) => void;
+
+  [BackgroundMessageType.HighlightSelector]: (
+    data: HighlightSelectorRequest
+  ) => HighlightSelectorResult;
+
+  [BackgroundMessageType.SubmitSelectorFeedback]: (
+    data: SubmitSelectorFeedbackRequest
+  ) => SubmitSelectorFeedbackResult;
 
   // auth surface (one-to-one with the legacy handlers)
   [BackgroundMessageType.InitializeAuth]: () => AuthState;
@@ -137,9 +164,13 @@ export interface TestSelectorsRequest {
   needHtmlForFeedback?: boolean;
 }
 
-export interface HighlightFinalSelectorRequest {
-  sessionId: string;
+export interface HighlightSelectorRequest {
   selector: SelectorRecord;
+}
+
+export interface HighlightSelectorResult {
+  /** Number of elements the selector matched on the active page (0 = none). */
+  matchCount: number;
 }
 
 export type ContentProtocolMap = {
@@ -152,6 +183,10 @@ export type ContentProtocolMap = {
     selectorResults: SelectorResultRecord[];
     elementHtmlById?: Record<string, string>;
   };
+
+  [ContentMessageType.HighlightSelector]: (
+    data: HighlightSelectorRequest
+  ) => HighlightSelectorResult;
 };
 
 /* ───────────────────── popup protocol map ────────────────────────────── */
@@ -163,6 +198,8 @@ export interface SessionStateChangedEvent {
 export interface SelectorGenerationSettledEvent {
   sessionId: string;
   result: FinalSelectorResult;
+  // new selector generated history entry
+  historyEntry?: SelectorHistoryEntry;
 }
 
 export type PopupProtocolMap = {

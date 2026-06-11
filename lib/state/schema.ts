@@ -115,6 +115,9 @@ export const finalResultSchema = z.object({
   status: z.enum(["ok", "fallback", "error"]),
   bestSelector: selectorSchema.optional(), // best generated candidate selector
   note: z.string().optional(),
+  // LangSmith root run id for the trace that produced this result; attached to
+  // the history entry so the popup can submit thumbs up/down feedback for it.
+  langsmithRunId: z.string().optional(),
 });
 export type FinalSelectorResult = z.infer<typeof finalResultSchema>;
 
@@ -147,6 +150,28 @@ export const selectorCreateStateSchema = z.object({
   errors: z.array(selectorErrorSchema).optional(),
 });
 export type SelectorCreateState = z.infer<typeof selectorCreateStateSchema>;
+
+export const selectorFeedbackSchema = z.enum(["up", "down"]);
+export type SelectorFeedback = z.infer<typeof selectorFeedbackSchema>;
+
+export const selectorHistoryEntrySchema = z
+  .object({
+    id: z.string().min(1),
+    createdAt: z.string().datetime(),
+    url: z.string(),
+    mode: selectorModeSchema,
+    css: z.string().optional(),
+    xpath: z.string().optional(),
+    // LangSmith run id this selector came from; present only when the backend
+    // surfaced one. Gates the thumbs up/down control in the popup.
+    langsmithRunId: z.string().optional(),
+    // The user's last submitted rating for this selector, if any.
+    feedback: selectorFeedbackSchema.optional(),
+  })
+  .refine((e) => !!e.css || !!e.xpath, {
+    message: "history entry needs at least one of css / xpath",
+  });
+export type SelectorHistoryEntry = z.infer<typeof selectorHistoryEntrySchema>;
 
 // request envelopes
 export const selectorCreateRequestSchema = selectorCreateStateSchema;

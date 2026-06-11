@@ -15,6 +15,7 @@ export {
   signOut,
   useBrowserSession,
 } from "./manager";
+export { fetchIntunedApi } from "./request";
 export { setApiKeyCredentials } from "./providers/apiKeyProvider";
 export {
   fetchSession,

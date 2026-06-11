@@ -87,4 +87,12 @@ export class ElementRegistry {
     this.toEl.clear();
     this.counter = 0;
   }
+
+  getRegistry() {
+    const registry: Record<string, Element> = {};
+    for (const [id, el] of this.toEl.entries()) {
+      registry[id] = el;
+    }
+    return registry;
+  }
 }

@@ -11,10 +11,12 @@ import { TokenAuthProvider } from "./providers/tokenProvider";
 import { clearMethod, getMethod, setMethod, setToken } from "./storage";
 import {
   AuthRequestError,
+  type AuthIdentity,
   type AuthMethod,
   type AuthProvider,
   type AuthState,
 } from "./types";
+import { fetchWorkspaceName } from "../graphql/workspace";
 
 /**
  * Resolves auth from the explicitly stored method (see getMethod in ./storage):
@@ -47,6 +49,26 @@ async function clearAllCredentials(): Promise<void> {
 }
 
 /**
+ * Resolve the workspace name from its id and merge it into the identity. Tokens
+ * carry only the workspace id, so the human-readable name comes from GraphQL.
+ * Best-effort: a failed/empty lookup leaves the identity unchanged rather than
+ * failing auth.
+ */
+async function withWorkspaceName(
+  identity: AuthIdentity | null,
+  accessToken: string
+): Promise<AuthIdentity | null> {
+  if (!identity?.workspaceId || identity.workspaceName) return identity;
+  try {
+    const name = await fetchWorkspaceName(accessToken, identity.workspaceId);
+    return name ? { ...identity, workspaceName: name } : identity;
+  } catch (error) {
+    console.debug("[selector-extension] workspace name lookup failed", error);
+    return identity;
+  }
+}
+
+/**
  * Resolve the active method into a state for the popup:
  *   - signed out -> `{ authenticated: false }`
  *   - configured but rejected (bad API key, expired token) -> adds `error`
@@ -67,7 +89,10 @@ export async function initAuth(): Promise<AuthState> {
     return {
       authenticated: true,
       method: provider.type,
-      identity: resolution.identity,
+      identity: await withWorkspaceName(
+        resolution.identity,
+        resolution.credentials.accessToken
+      ),
       hasToken: !!resolution.credentials.accessToken,
     };
   } catch (error) {

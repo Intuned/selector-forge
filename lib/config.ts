@@ -20,3 +20,8 @@ export async function getSelectorCreateUrl(): Promise<string> {
   const apiBase = await getApiBase();
   return `${apiBase}/api/selectors/create`;
 }
+
+export async function getSelectorFeedbackUrl(): Promise<string> {
+  const apiBase = await getApiBase();
+  return `${apiBase}/api/selectors/feedback`;
+}

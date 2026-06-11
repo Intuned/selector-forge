@@ -13,6 +13,8 @@ import {
 } from "./auth";
 import { handleCancelPickerSession } from "./cancelSelectorPickerSession";
 import { handleGetSelectorCreationUsage } from "./usage";
+import { handleHighlightSelector } from "./highlightSelector";
+import { handleSubmitSelectorFeedback } from "./submitSelectorFeedback";
 
 export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.BootstrapPopup]: handleBootstrapPopup,
@@ -25,4 +27,6 @@ export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.SignOut]: handleSignOut,
   [BackgroundMessageType.SetApiKey]: handleSetApiKey,
   [BackgroundMessageType.GetSelectorCreationUsage]: handleGetSelectorCreationUsage,
+  [BackgroundMessageType.HighlightSelector]: handleHighlightSelector,
+  [BackgroundMessageType.SubmitSelectorFeedback]: handleSubmitSelectorFeedback,
 };

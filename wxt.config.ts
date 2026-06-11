@@ -2,6 +2,7 @@ import { defineConfig } from "wxt";
 
 // Chrome MV3 + Firefox MV3.
 export default defineConfig({
+  modules: ["@wxt-dev/module-react"],
   manifestVersion: 3,
   manifest: ({ browser, mode }) => {
     // `any` to attach fields ahead of WXT's manifest typings.

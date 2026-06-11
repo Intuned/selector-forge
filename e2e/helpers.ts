@@ -154,13 +154,16 @@ export async function installSwFetchStub(
 
 // ─── popup convenience ───────────────────────────────────────────────────────
 
-/** True when the popup's mode buttons are all enabled (signed-in state). */
+/**
+ * True when the popup's mode cards are present and enabled (the signed-in
+ * "new selector" screen). Signed-out renders the auth panel instead, so the
+ * cards are absent — which we report as "not enabled".
+ */
 export async function modesEnabled(popup: Page): Promise<boolean> {
-  const single = await popup
-    .getByRole("button", { name: "Single" })
-    .isDisabled();
-  const list = await popup.getByRole("button", { name: "List" }).isDisabled();
-  return !single && !list;
+  const single = popup.getByRole("button", { name: /single element/i });
+  const list = popup.getByRole("button", { name: /list of items/i });
+  if ((await single.count()) === 0 || (await list.count()) === 0) return false;
+  return (await single.isEnabled()) && (await list.isEnabled());
 }
 
 // ─── picker driver (e2e-only) ────────────────────────────────────────────────

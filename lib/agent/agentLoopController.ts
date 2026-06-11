@@ -1,14 +1,16 @@
-import { getApiHeaders, getApiQueryParams } from "@/lib/auth";
+import { fetchIntunedApi } from "@/lib/auth";
 import { getSelectorCreateUrl } from "@/lib/config";
 import {
   ContentMessageType,
   PopupMessageType,
   type BackgroundMessagingClient,
 } from "@/lib/messaging";
+import { appendSelectorHistory } from "@/lib/state";
 import type {
   BrowserResultRecord,
   FinalSelectorResult,
   SelectorCreateResponse,
+  SelectorHistoryEntry,
   SelectorCreateState,
   SelectorState,
   SelectorStatus,
@@ -160,7 +162,8 @@ export class AgentLoopController {
   ): Promise<void> {
     this.status = "idle";
 
-    if (this.deps.state.get()) {
+    const session = this.deps.state.get();
+    if (session) {
       this.deps.state.update((prev) => ({
         ...prev,
         status: result.status === "error" ? "error" : "done",
@@ -168,6 +171,36 @@ export class AgentLoopController {
         browserRequest: null,
       }));
     }
+
+    // On success, capture the settled selector into durable history. `css` is
+    // the agent's best generated selector; `xpath` is seeded from the picked
+    // element (`targets[].elementXpath`) unless the best selector is itself an
+    // xpath.
+    let historyEntry: SelectorHistoryEntry | undefined;
+    if (session && result.status !== "error" && result.bestSelector) {
+      const best = result.bestSelector;
+      const seededXpath = session.targets.find(
+        (t) => t.elementXpath
+      )?.elementXpath;
+      const entry: SelectorHistoryEntry = {
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        url: session.page.url,
+        mode: session.mode,
+        css: best.type === "css" ? best.value : undefined,
+        xpath: best.type === "xpath" ? best.value : seededXpath,
+        langsmithRunId: result.langsmithRunId,
+      };
+      if (entry.css || entry.xpath) {
+        try {
+          await appendSelectorHistory(entry);
+          historyEntry = entry;
+        } catch (error) {
+          console.debug("[selector-extension] history append failed", error);
+        }
+      }
+    }
+
     const tabId = this.deps.state.getMeta()?.tabId ?? null;
     if (tabId != null) {
       try {
@@ -182,7 +215,7 @@ export class AgentLoopController {
     }
     await this.deps.backgroundMessagingClient.sendMessageToPopup(
       PopupMessageType.SelectorGenerationSettled,
-      { sessionId, result }
+      { sessionId, result, historyEntry }
     );
     // Auto-reopen the popup so the user sees the result without an extra
     // click. Browser may reject if no recent user gesture / unsupported
@@ -216,33 +249,14 @@ export class AgentLoopController {
     return (await res.json()) as SelectorCreateResponse;
   }
 
-  /**
-   * POST the session state with auth from the active method: `x-api-key` or
-   * Bearer headers for configured methods, or no headers for session auth,
-   * where the browser-injected cookie is the credential. Cookies are omitted
-   * when headers are present so the explicit credential stays authoritative
-   * (the backend checks the session cookie first). The api-key method also
-   * appends its `workspaceId` query param — the backend's APIKeyAuthHandler
-   * requires it to validate the key. Throws AuthRequestError when signed
-   * out / unconfigured; the loop surfaces its message to the popup.
-   */
+  /** POST the session state to the backend with the active auth method applied. */
   private async postState(
     url: string,
     state: SelectorCreateState,
     signal: AbortSignal
   ): Promise<Response> {
-    const authHeaders = await getApiHeaders();
-    const authQueryParams = await getApiQueryParams();
-
-    const target = new URL(url);
-    for (const [key, value] of Object.entries(authQueryParams ?? {})) {
-      target.searchParams.set(key, value);
-    }
-
-    return fetch(target.toString(), {
+    return fetchIntunedApi(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders },
-      credentials: authHeaders ? "omit" : "include",
       body: JSON.stringify(state),
       signal,
     });

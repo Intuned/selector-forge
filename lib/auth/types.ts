@@ -26,11 +26,16 @@ export interface AuthIdentity {
   email?: string;
   picture?: string;
   workspaceId?: string;
+  workspaceName?: string;
 }
 
 /** Result of fully resolving a provider (credentials + identity). */
 export type AuthResolution =
-  | { status: "authenticated"; credentials: AuthCredentials; identity: AuthIdentity | null }
+  | {
+      status: "authenticated";
+      credentials: AuthCredentials;
+      identity: AuthIdentity | null;
+    }
   | { status: "unauthenticated" };
 
 /** High-level snapshot the popup renders. */

@@ -91,9 +91,9 @@ test.describe("with seeded auth", () => {
     await page.locator("#primary").click();
 
     // The popup, opened now, should render the selector returned by the
-    // (stubbed) backend.
+    // (stubbed) backend. Successful results land in history; the most recent
+    // entry is auto-expanded, surfacing the selector in its `.result-code` box.
     const popup = await openPopup(context);
-    await expect(popup.locator("#status")).toContainText(/selector ready/i);
     await expect(popup.locator(".result-code")).toHaveText("#primary");
 
     // Overlay is gone (deactivated as part of settle).
@@ -154,10 +154,11 @@ test.describe("with seeded auth", () => {
     const popup = await openPopup(context);
     expect(await modesEnabled(popup)).toBe(true);
 
+    // Sign out now lives in the workspace-switcher menu in the header.
+    await popup.locator("#workspace-menu").click();
     await popup.locator("#sign-out").click();
 
-    // Re-open to read the freshly-rendered state (sign-out re-runs
-    // initAuth and re-renders inline).
+    // The component re-renders inline once SignOut resolves.
     await expect(popup.locator("#auth-state")).not.toHaveAttribute(
       "data-state",
       "authenticated"

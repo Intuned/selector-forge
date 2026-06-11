@@ -9,7 +9,8 @@ export {
   type BackgroundProtocolMap,
   type BootstrapPopupResponse,
   type ContentProtocolMap,
-  type HighlightFinalSelectorRequest,
+  type HighlightSelectorRequest,
+  type HighlightSelectorResult,
   type PopupProtocolMap,
   type ReportPickerErrorRequest,
   type SelectorGenerationSettledEvent,
@@ -17,6 +18,8 @@ export {
   type StartSelectorSessionRequest,
   type StartSelectorSessionResponse,
   type SubmitBrowserTestResultRequest,
+  type SubmitSelectorFeedbackRequest,
+  type SubmitSelectorFeedbackResult,
   type SubmitTargetSelectionRequest,
   type TestSelectorsRequest,
 } from "./protocol";
