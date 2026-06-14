@@ -1,6 +1,6 @@
 {
   "name": "selector-extension",
-  "description": "Intuned Selector — pick an element on a page, get a reliable selector.",
+  "description": "Selector Forge — pick an element on a page, get a reliable AI-built selector. Powered by Intuned.",
   "private": true,
   "version": "0.0.1",
   "type": "module",

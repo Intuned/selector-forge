@@ -7,21 +7,21 @@ export default defineConfig({
   manifest: ({ browser, mode }) => {
     // `any` to attach fields ahead of WXT's manifest typings.
     const manifest: any = {
-      name: "Intuned Selector",
+      name: "Selector Forge - AI selector builder",
       description:
-        "Pick an element on the page and get a reliable selector for it.",
+        "Pick an element on the page and get a reliable AI-built selector for it. Powered by Intuned.",
       action: { default_title: "Pick element → reliable selector" },
-      // Least privilege: activeTab is granted on the popup gesture; scripting lets the
-      // background inject the picker on demand. No <all_urls> in the shipped build.
-      permissions: ["storage", "activeTab", "scripting"],
+      // Least privilege: activeTab is granted on the popup gesture. The picker is a
+      // statically declared content script (see `entrypoints/content.ts`) the background
+      // drives via message passing, so no `scripting` permission is needed.
+      permissions: ["storage", "activeTab"],
       // Lets the background service worker call the API host cross-origin. Prod
       // (`app.intuned.io`) is the default base URL; `dev.intuned.io` is kept so a
       // `config.apiBase` override (see `lib/config.ts`) can target it without a
       // manifest change.
       host_permissions: [
-        "http://localhost:3000/*",
         "https://app.intuned.io/*",
-        "https://dev.intuned.io/*",
+        "https://metricsshop.hasura.app/v1/graphql",
       ],
     };
 

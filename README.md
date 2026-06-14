@@ -1,6 +1,6 @@
 # selector-extension
 
-Intuned Selector — a standalone browser extension that lets a user pick an element on any page and get back a **reliable** selector (CSS or XPath), generated and judged by Intuned's selector backend.
+Selector Forge (powered by Intuned) — a standalone browser extension that lets a user pick an element on any page and get back a **reliable** selector (CSS or XPath), generated and judged by Intuned's selector backend.
 
 > Status: **scaffold only.** Entry points and module boundaries are in place; features land per the plan.
 

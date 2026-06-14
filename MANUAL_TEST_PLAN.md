@@ -332,7 +332,7 @@ The background is a service worker, not a persistent page. This class of bug onl
 ## 13. Installation & permissions
 
 - 🟡 **Fresh install** — first popup open shows sign-in. Verify storage starts empty.
-- 🟡 **Permission prompt on install** — `activeTab`, `scripting`, `storage`. Verify what the user sees.
+- 🟡 **Permission prompt on install** — `activeTab`, `storage`. Verify what the user sees.
 - 🟡 **`host_permissions` review** — `https://dev.intuned.io/*` and `http://localhost:3000/*` shown to user. ⚠️ **`localhost` in a shipped extension may raise eyebrows on store review; replace before shipping per the comment in `wxt.config.ts`.**
 - 🟡 **Extension disabled mid-session** — user toggles off in `chrome://extensions`. Picker overlay survives (CS still loaded), but no more BG. Verify no orphan overlay.
 - 🟡 **Extension uninstalled mid-session** — content script invalidated. Picker overlay frozen. Verify no console errors.

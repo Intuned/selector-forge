@@ -59,7 +59,7 @@ export function AuthPanel({
     <div className={styles.authPanel}>
       <div className={styles.authIntro}>
         <p className={styles.eyebrow}>Welcome</p>
-        <h2 className={styles.authTitle}>Sign in to Intuned Selector</h2>
+        <h2 className={styles.authTitle}>Sign in to Selector Forge</h2>
         <p id="status" className={styles.authLead}>
           {lead}
         </p>
