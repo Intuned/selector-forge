@@ -13,6 +13,8 @@ import {
 } from "./auth";
 import { handleCancelPickerSession } from "./cancelSelectorPickerSession";
 import { handleGetSelectorCreationUsage } from "./usage";
+import { handleStartPickerSessionForTab } from "./startPickerSessionForTab";
+import { handleGetSessionState } from "./getSessionState";
 import { handleHighlightSelector } from "./highlightSelector";
 import { handleSubmitSelectorFeedback } from "./submitSelectorFeedback";
 
@@ -29,4 +31,6 @@ export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.GetSelectorCreationUsage]: handleGetSelectorCreationUsage,
   [BackgroundMessageType.HighlightSelector]: handleHighlightSelector,
   [BackgroundMessageType.SubmitSelectorFeedback]: handleSubmitSelectorFeedback,
+  [BackgroundMessageType.StartPickerSessionForTab]: handleStartPickerSessionForTab,
+  [BackgroundMessageType.GetSessionState]: handleGetSessionState,
 };

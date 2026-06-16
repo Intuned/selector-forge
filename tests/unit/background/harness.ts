@@ -5,9 +5,9 @@ import type {
   BackgroundHandlerContext,
   MessageSender,
 } from "../../../lib/background";
+import { ContentMessageType } from "../../../lib/messaging";
 import type {
   BackgroundMessagingClient,
-  ContentMessageType,
   ContentProtocolMap,
   PopupMessageType,
   PopupProtocolMap,
@@ -74,7 +74,11 @@ export function createFakeMessagingClient(): FakeMessagingClient {
         throw rejection;
       }
       const impl = scripts.get(type);
-      return impl ? impl(call) : undefined;
+      if (impl) return impl(call);
+      // ActivatePicker responses are verified by the session-start core;
+      // default to success so tests only script the failure cases.
+      if (type === ContentMessageType.ActivatePicker) return { ok: true };
+      return undefined;
     }) as BackgroundMessagingClient["sendMessageToContent"],
     sendMessageToPopup: (async (type, data) => {
       popupCalls.push({ type, data } as ToPopupCall);

@@ -12,7 +12,17 @@ export interface BackgroundContext {
   backgroundMessagingClient: BackgroundMessagingClient;
 }
 
-/** Per-call dependencies — `BackgroundContext` plus the message sender. */
+/**
+ * Per-call dependencies — `BackgroundContext` plus the message sender.
+ * `sender` is undefined for calls arriving through the CDP bridge
+ * (see ./bridge.ts), which has no extension message sender.
+ *
+ * `viaBridge` marks programmatic (CLI) calls. It's the reliable way to tell
+ * them apart from UI calls — `sender` is not, since popup messages also arrive
+ * with no `sender.tab`. Handlers use it to skip UI-only side effects (e.g.
+ * resetting the popup's saved mode) for programmatic calls.
+ */
 export interface BackgroundHandlerContext extends BackgroundContext {
-  sender: MessageSender;
+  sender: MessageSender | undefined;
+  viaBridge?: boolean;
 }

@@ -1,17 +1,12 @@
-import { BackgroundMessageType, ContentMessageType } from "@/lib/messaging";
-import { SELECTOR_HISTORY_SCHEMA_VERSION, saveLastMode } from "@/lib/state";
+import type { BackgroundMessageType } from "@/lib/messaging";
+import { saveLastMode } from "@/lib/state";
 import type { BackgroundHandler } from "@/lib/background";
+import { seedAndActivateSession } from "./startSessionCore";
 
 export const handleStartPickerSession: BackgroundHandler<
   BackgroundMessageType.StartPickerSession
-> = async (
-  { mode, page },
-  { state, backgroundMessagingClient, sender, agentLoopController }
-) => {
-  // Abort any in-flight loop from a previous session.
-  agentLoopController.cancel();
-
-  let tabId = sender?.tab?.id ?? null;
+> = async ({ mode, page }, ctx) => {
+  let tabId = ctx.sender?.tab?.id ?? null;
   if (tabId == null) {
     const [tab] = await browser.tabs.query({
       active: true,
@@ -23,33 +18,11 @@ export const handleStartPickerSession: BackgroundHandler<
     throw new Error("No active tab to start a selector session in");
   }
 
-
+  // Remember the popup-selected mode so the popup defaults to it next time.
+  // The CLI bridge path (startPickerSessionForTab) deliberately skips this —
+  // programmatic sessions shouldn't override the user's remembered choice.
   await saveLastMode(mode);
 
-  state.setMeta({ tabId });
-  const sessionId = crypto.randomUUID();
-
-  // initial state for the selector session
-  state.set({
-    schemaVersion: SELECTOR_HISTORY_SCHEMA_VERSION,
-    sessionId,
-    mode,
-    status: "picking",
-    page,
-    targets: [],
-    example: { inspectionView: "", targetElementIds: [] },
-    seedCandidates: [],
-    messages: [],
-    browserRequest: null,
-    browserResult: null,
-    correctSelectors: [],
-  });
-
-  await backgroundMessagingClient.sendMessageToContent(
-    tabId,
-    ContentMessageType.ActivatePicker,
-    { sessionId, mode, status: "picking", targets: [] }
-  );
-
+  const { sessionId } = await seedAndActivateSession({ mode, page, tabId }, ctx);
   return { sessionId };
 };

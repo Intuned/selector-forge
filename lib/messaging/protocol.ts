@@ -41,6 +41,10 @@ export enum BackgroundMessageType {
 
   // billing
   GetSelectorCreationUsage = "bg:getSelectorCreationUsage",
+
+  // programmatic surface (CLI bridge over CDP, see lib/background/bridge.ts)
+  StartPickerSessionForTab = "bg:startPickerSessionForTab",
+  GetSessionState = "bg:getSessionState",
 }
 
 // messages addressed to content scripts (from background)
@@ -101,6 +105,28 @@ export interface BootstrapPopupResponse {
   lastMode: SelectorMode | null;
 }
 
+/**
+ * Programmatic session start (CLI bridge). Unlike `StartPickerSession` it does
+ * not depend on a popup sender or active-tab gesture: the tab is targeted
+ * explicitly and the page context is derived from the tab itself.
+ */
+export interface StartPickerSessionForTabRequest {
+  mode: SelectorMode;
+  /** Explicit chrome tab id (advanced/e2e use). Takes precedence over `urlContains`. */
+  tabId?: number;
+  /**
+   * Case-insensitive URL substring matched across open tabs. Exactly one tab
+   * must match. When neither `tabId` nor `urlContains` is given, the active
+   * tab of the last focused window is used.
+   */
+  urlContains?: string;
+}
+export interface StartPickerSessionForTabResponse {
+  sessionId: string;
+  tabId: number;
+  page: PageContext;
+}
+
 export type BackgroundProtocolMap = {
   [BackgroundMessageType.BootstrapPopup]: () => BootstrapPopupResponse;
 
@@ -138,6 +164,12 @@ export type BackgroundProtocolMap = {
   }) => AuthState;
 
   [BackgroundMessageType.GetSelectorCreationUsage]: () => SelectorCreationUsage;
+
+  // programmatic surface (CLI bridge)
+  [BackgroundMessageType.StartPickerSessionForTab]: (
+    data: StartPickerSessionForTabRequest
+  ) => StartPickerSessionForTabResponse;
+  [BackgroundMessageType.GetSessionState]: () => SelectorCreateState | null;
 };
 
 /* ───────────────────── content protocol map ──────────────────────────── */

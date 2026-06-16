@@ -129,6 +129,21 @@ Every BG handler receives (see `lib/background/context.ts`):
 | `StartAgent`                                          | Content reports `{ sessionId, targets, inspectionView }` after the user clicks Done. Validates the in-flight session matches, folds targets into state, kicks off `agentLoopController.runAgentLoop`. |
 | `ReportPickerError`                                   | Records error on state, emits `SelectorGenerationSettled` to popup with `status: "error"`.                                                                                                            |
 | `InitializeAuth` / `SignIn` / `SignOut` / `SetApiKey` | Auth — delegates to the existing auth manager; kept on the BG surface so the registration pattern stays uniform.                                                                                      |
+| `StartPickerSessionForTab`                            | Programmatic start (CDP bridge): targets a tab explicitly (`tabId` / `urlContains` / active-tab default), derives page context from the tab (`tabs` permission), shares the seeding core with `StartPickerSession`. |
+| `GetSessionState`                                     | Poll target for external callers: returns the current `SelectorCreateState` or `null`.                                                                                                               |
+
+### `__intunedBridge` (CDP entry point)
+
+`lib/background/bridge.ts` installs a production global in the worker:
+`__intunedBridge.handle(type, payload, accessToken?) → Promise<{ ok, result | error }>`.
+External callers (the Intuned CLI, see `AGENT_INTEGRATION_PLAN.md`) reach it via
+`Target.attachToTarget` + `Runtime.evaluate` on the worker session. It routes into the
+same exhaustive handler table with `sender: undefined`, never rejects (handler failures
+come back as `ok: false` envelopes), and negotiates auth per the integration plan §6:
+working auth is kept, otherwise the caller's token is applied via `configureToken`.
+The Chrome extension ID is pinned via the manifest `key` in `wxt.config.ts`
+(`kagnpahelafjcmmbbcinolcjldclchnc`); store publishing keeps that ID only if uploaded
+with the same key (private key in 1Password).
 
 ---
 

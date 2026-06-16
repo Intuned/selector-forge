@@ -8,6 +8,7 @@ import {
   BackgroundMessageType,
   ContentMessageType,
 } from "../../../lib/messaging";
+import { loadLastMode, saveLastMode } from "../../../lib/state";
 import {
   createHarness,
   makeInflightSession,
@@ -166,6 +167,47 @@ describe("handleCancelPickerSession", () => {
     ).resolves.toBeUndefined();
 
     expect(h.state.get()).toBeNull();
+    expect(h.messaging.contentCalls).toEqual([]);
+  });
+
+  it("clears the popup's saved mode on a UI-initiated cancel", async () => {
+    const h = createHarness({ sender: senderFromTab(7) });
+    h.state.set(makeInflightSession({ sessionId: "sess-1" }));
+    await saveLastMode("list");
+
+    await handleCancelPickerSession({ sessionId: "sess-1" }, h.context);
+
+    expect(await loadLastMode()).toBeNull();
+  });
+
+  it("preserves the popup's saved mode on a programmatic (bridge) cancel", async () => {
+    const h = createHarness({ sender: undefined });
+    h.state.set(makeInflightSession({ sessionId: "sess-1" }));
+    await saveLastMode("list");
+
+    await handleCancelPickerSession(
+      { sessionId: "sess-1" },
+      { ...h.context, viaBridge: true }
+    );
+
+    // The CLI never sets lastMode, so its cancel must not wipe the popup's pref.
+    expect(await loadLastMode()).toBe("list");
+    // Session is still torn down.
+    expect(h.state.get()).toBeNull();
+  });
+
+  it("ignores a stale cancel for a session that was already replaced", async () => {
+    const h = createHarness({ sender: undefined });
+    h.state.setMeta({ tabId: 9 });
+    h.state.set(makeInflightSession({ sessionId: "sess-new" }));
+
+    // A stale teardown (e.g. CLI timeout) for the old session must not clobber
+    // the session that replaced it.
+    await handleCancelPickerSession({ sessionId: "sess-old" }, h.context);
+
+    expect(h.agentLoop.cancelCalls).toBe(0);
+    expect(h.state.get()?.sessionId).toBe("sess-new");
+    expect(h.state.getMeta()).toEqual({ tabId: 9 });
     expect(h.messaging.contentCalls).toEqual([]);
   });
 

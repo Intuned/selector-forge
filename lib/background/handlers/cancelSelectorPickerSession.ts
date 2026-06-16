@@ -6,14 +6,24 @@ export const handleCancelPickerSession: BackgroundHandler<
   BackgroundMessageType.CancelPickerSession
 > = async (
   { sessionId },
-  { state, agentLoopController, backgroundMessagingClient, sender }
+  { state, agentLoopController, backgroundMessagingClient, sender, viaBridge }
 ) => {
+  const current = state.get();
+  if (current && current.sessionId !== sessionId) {
+    return;
+  }
+
   const tabId = sender?.tab?.id ?? state.getMeta()?.tabId ?? null;
 
   agentLoopController.cancel();
   state.clear();
 
-  await clearLastMode();
+  // `lastMode` is a popup-only preference (saved only by the popup start path).
+  // Don't let a programmatic (CLI) cancel reset it — only UI-initiated cancels
+  // should, mirroring who sets it.
+  if (!viaBridge) {
+    await clearLastMode();
+  }
 
   if (tabId != null) {
     try {
@@ -27,12 +37,16 @@ export const handleCancelPickerSession: BackgroundHandler<
     }
   }
 
-  try {
-    await browser.action.openPopup();
-  } catch (error) {
-    console.debug(
-      "[selector-extension] openPopup not allowed on cancel",
-      error
-    );
+  // Returning the user to the popup is a UI affordance; skip it for
+  // programmatic (CLI) cancels, which have no user to surface it to.
+  if (!viaBridge) {
+    try {
+      await browser.action.openPopup();
+    } catch (error) {
+      console.debug(
+        "[selector-extension] openPopup not allowed on cancel",
+        error
+      );
+    }
   }
 };

@@ -1,6 +1,7 @@
 import { AgentLoopController } from "@/lib/agent";
 import {
   backgroundHandlers,
+  installIntunedBridge,
   registerBackgroundHandlers,
   registerSessionTabWatcher,
   type BackgroundContext,
@@ -26,6 +27,9 @@ export default defineBackground(() => {
 
   registerBackgroundHandlers(backgroundHandlers, context);
   registerSessionTabWatcher(context);
+
+  // Production bridge for external callers over CDP (Intuned CLI).
+  installIntunedBridge(backgroundHandlers, context);
 
   // e2e only bridge to drive background handlers with the same tab id when having the popup-as-a-tab
   if (import.meta.env.MODE === "e2e") {
