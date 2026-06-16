@@ -16,6 +16,8 @@ export {
   SquareDashedMousePointer as NewSelectorIcon,
   ThumbsUp as ThumbsUpIcon,
   ThumbsDown as ThumbsDownIcon,
+  Settings as SettingsIcon,
+  TriangleAlert as AlertIcon,
 } from "lucide-react";
 
 /** Intuned colored mark. */

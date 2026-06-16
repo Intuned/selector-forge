@@ -1,4 +1,5 @@
 import { BackgroundMessageType, ContentMessageType } from "@/lib/messaging";
+import { clearLastMode } from "@/lib/state";
 import type { BackgroundHandler } from "@/lib/background";
 
 export const handleCancelPickerSession: BackgroundHandler<
@@ -12,6 +13,8 @@ export const handleCancelPickerSession: BackgroundHandler<
   agentLoopController.cancel();
   state.clear();
 
+  await clearLastMode();
+
   if (tabId != null) {
     try {
       await backgroundMessagingClient.sendMessageToContent(
@@ -22,5 +25,14 @@ export const handleCancelPickerSession: BackgroundHandler<
     } catch {
       // content script may already be gone (tab navigated/closed).
     }
+  }
+
+  try {
+    await browser.action.openPopup();
+  } catch (error) {
+    console.debug(
+      "[selector-extension] openPopup not allowed on cancel",
+      error
+    );
   }
 };

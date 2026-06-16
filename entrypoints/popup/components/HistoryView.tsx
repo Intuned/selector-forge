@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { SelectorHistoryEntry } from "@/lib/state";
 import styles from "../ui.module.css";
 import { NewSelectorIcon } from "../icons";
@@ -11,23 +10,12 @@ export function HistoryView({
   history: SelectorHistoryEntry[];
   onNew: () => void;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(
-    history[0]?.id ?? null
-  );
-
   return (
     <>
       <div className={styles.content}>
         <div className={styles.historyList}>
           {history.map((entry) => (
-            <HistoryItem
-              key={entry.id}
-              entry={entry}
-              expanded={entry.id === expandedId}
-              onToggle={() =>
-                setExpandedId((id) => (id === entry.id ? null : entry.id))
-              }
-            />
+            <HistoryItem key={entry.id} entry={entry} />
           ))}
         </div>
       </div>

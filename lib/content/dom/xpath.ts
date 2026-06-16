@@ -9,10 +9,7 @@
 //   https://github.com/ChromeDevTools/devtools-frontend/blob/1c800e5a8d66d5cd8af8a394c753ad437889ac32/front_end/panels/recorder/injected/selectors/XPath.ts
 
 class SelectorPart {
-  constructor(
-    readonly value: string,
-    readonly optimized: boolean = false
-  ) {}
+  constructor(readonly value: string, readonly optimized: boolean = false) {}
 
   toString(): string {
     return this.value;
@@ -77,7 +74,10 @@ function getSelectorPart(
         for (const attribute of attributes) {
           const attrValue = node.getAttribute(attribute) || "";
           if (attrValue) {
-            return new SelectorPart(attributeSelector(attribute, attrValue), true);
+            return new SelectorPart(
+              attributeSelector(attribute, attrValue),
+              true
+            );
           }
         }
       }

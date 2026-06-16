@@ -1,5 +1,4 @@
 import type {
-  FinalSelectorResult,
   SelectorCreateState,
   SelectorHistoryEntry,
   SelectorMode,
@@ -17,13 +16,11 @@ export function Body(props: {
   bootstrapError: string | null;
   authState: AuthState | null;
   session: SelectorCreateState | null;
-  selectorGenerationError: FinalSelectorResult | null;
   history: SelectorHistoryEntry[];
   showPicker: boolean;
   mode: SelectorMode;
   onModeChange: (m: SelectorMode) => void;
   onPick: (m: SelectorMode) => void;
-  onNew: () => void;
   onOpenPicker: () => void;
   onCancel: () => void;
   onRetry: () => void;
@@ -34,13 +31,11 @@ export function Body(props: {
     bootstrapError,
     authState,
     session,
-    selectorGenerationError,
     history,
     showPicker,
     mode,
     onModeChange,
     onPick,
-    onNew,
     onOpenPicker,
     onCancel,
     onRetry,
@@ -83,24 +78,6 @@ export function Body(props: {
     session?.status === "awaiting_browser"
   ) {
     return <SessionInProgress session={session} onCancel={onCancel} />;
-  }
-
-  // Successful results live in `history`; only errors get a dedicated view.
-  if (selectorGenerationError && selectorGenerationError.status === "error") {
-    return (
-      <div className={styles.center}>
-        <p id="status" className={styles.status}>
-          {selectorGenerationError.note ?? "Could not generate selector."}
-        </p>
-        <button
-          type="button"
-          className={`${styles.btnGhost} ${styles.btnAuto}`}
-          onClick={onNew}
-        >
-          <UndoIcon size={14} /> Go back
-        </button>
-      </div>
-    );
   }
 
   if (showPicker || history.length === 0) {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import styles from "../ui.module.css";
 import { CursorClick, ListIcon, TargetIcon } from "../icons";
-import type { SelectorMode } from "../types";
+import type { SelectorMode } from "@/lib/state";
 
 const MODES: {
   id: SelectorMode;

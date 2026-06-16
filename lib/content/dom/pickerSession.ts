@@ -62,7 +62,6 @@ export class PickerSession {
             el,
             id: registry.idFor(el),
           }));
-
           const targets: TargetRecord[] = tagged.map(({ el, id }) => ({
             elementId: id,
             elementXpath: computeXPath(el),

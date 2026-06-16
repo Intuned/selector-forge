@@ -1,5 +1,7 @@
 import type { SelectorMode } from "@/lib/state";
 import overlayCss from "./pickerOverlay.css?raw";
+import { computeXPath } from "./xpath";
+import { predictListMatches } from "./predictListItems";
 
 // Intuned colored mark (mirrors IntunedLogo in popup/icons.tsx). Inlined as raw
 // markup because this overlay renders inside a content-script shadow root, not React.
@@ -22,6 +24,9 @@ export class PickerOverlay {
 
   // non-ui state of the picker
   private picked: Element[] = [];
+  // Locked, auto-derived list items (list mode, 2+ picks). Display-only — these
+  // preview what one reliable selector would catch and are never submitted.
+  private predicted: Element[] = [];
   private submitted = false;
 
   // Drag state for the movable toolbar.
@@ -200,17 +205,36 @@ export class PickerOverlay {
       return;
     }
 
-    // list mode: toggle pick on click
+    // toggle pick on click
     const existing = this.picked.indexOf(target);
     if (existing >= 0) {
       this.picked.splice(existing, 1);
     } else {
       this.picked.push(target);
     }
+    this.recomputePredictions();
     this.renderSelected();
     this.updateStatus();
     if (this.doneBtn) this.doneBtn.disabled = this.picked.length === 0;
   };
+
+  private recomputePredictions(): void {
+    if (this.mode !== "list" || this.picked.length < 2) {
+      this.predicted = [];
+      return;
+    }
+    const xpaths = this.picked
+      .map((el) => computeXPath(el))
+      .filter((x): x is string => !!x);
+    if (xpaths.length < 2) {
+      this.predicted = [];
+      return;
+    }
+    const pickedSet = new Set(this.picked);
+    this.predicted = predictListMatches(xpaths).filter(
+      (el) => !pickedSet.has(el)
+    );
+  }
 
   /** Fire onSubmit and lock the overlay so further clicks are ignored. */
   private commitSubmit(): void {
@@ -313,15 +337,33 @@ export class PickerOverlay {
       this.positionBox(box, el);
       this.selectedLayer.appendChild(box);
     }
+
+    for (const el of this.predicted) {
+      if (!el.isConnected) continue;
+      const box = document.createElement("div");
+      box.className = "predicted-box";
+      const pill = document.createElement("span");
+      pill.className = "predicted-pill";
+      pill.textContent = "predicted";
+      box.appendChild(pill);
+      this.positionBox(box, el);
+      this.selectedLayer.appendChild(box);
+    }
   }
 
   private updateStatus(): void {
     if (this.mode === "single") {
       this.statusEl.textContent = "Click an element to pick";
+      return;
+    }
+    const n = this.picked.length;
+    if (n === 0) {
+      this.statusEl.textContent = "Click elements (list mode)";
+    } else if (this.predicted.length > 0) {
+      const total = n + this.predicted.length;
+      this.statusEl.textContent = `${n} picked · ${total} items predicted`;
     } else {
-      const n = this.picked.length;
-      this.statusEl.textContent =
-        n === 0 ? "Click elements (list mode)" : `${n} picked`;
+      this.statusEl.textContent = `${n} picked`;
     }
   }
 }

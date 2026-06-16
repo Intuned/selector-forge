@@ -154,23 +154,25 @@ export type SelectorCreateState = z.infer<typeof selectorCreateStateSchema>;
 export const selectorFeedbackSchema = z.enum(["up", "down"]);
 export type SelectorFeedback = z.infer<typeof selectorFeedbackSchema>;
 
-export const selectorHistoryEntrySchema = z
-  .object({
-    id: z.string().min(1),
-    createdAt: z.string().datetime(),
-    url: z.string(),
-    mode: selectorModeSchema,
-    css: z.string().optional(),
-    xpath: z.string().optional(),
-    // LangSmith run id this selector came from; present only when the backend
-    // surfaced one. Gates the thumbs up/down control in the popup.
-    langsmithRunId: z.string().optional(),
-    // The user's last submitted rating for this selector, if any.
-    feedback: selectorFeedbackSchema.optional(),
-  })
-  .refine((e) => !!e.css || !!e.xpath, {
-    message: "history entry needs at least one of css / xpath",
-  });
+export const selectorHistoryEntrySchema = z.object({
+  id: z.string().min(1),
+  createdAt: z.string().datetime(),
+  url: z.string(),
+  mode: selectorModeSchema,
+  // The single selector the agent settled on. Its `type` drives the badge; the
+  // popup no longer keeps a css/xpath pair to toggle between.
+  selector: selectorSchema,
+  // LangSmith run id this selector came from; present only when the backend
+  // surfaced one. Gates the thumbs up/down control in the popup.
+  langsmithRunId: z.string().optional(),
+  // Elements the selector matched on the source page, counted once when the
+  // entry was stored. The popup shows this fixed count rather than re-counting
+  // against the live page on every open. Optional for entries stored before
+  // this field existed.
+  matchCount: z.number().int().nonnegative().optional(),
+  // The user's last submitted rating for this selector, if any.
+  feedback: selectorFeedbackSchema.optional(),
+});
 export type SelectorHistoryEntry = z.infer<typeof selectorHistoryEntrySchema>;
 
 // request envelopes

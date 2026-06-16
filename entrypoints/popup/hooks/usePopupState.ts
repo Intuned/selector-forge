@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
-  FinalSelectorResult,
   SelectorCreateState,
   SelectorHistoryEntry,
   SelectorMode,
@@ -14,10 +13,9 @@ import type { ChipState } from "../types";
 export function usePopupState() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [session, setSession] = useState<SelectorCreateState | null>(null);
-  const [selectorGenerationError, setSelectorGenerationError] =
-    useState<FinalSelectorResult | null>(null);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [mode, setMode] = useState<SelectorMode>("single");
+  const [lastMode, setLastMode] = useState<SelectorMode | null>(null);
   const [history, setHistory] = useState<SelectorHistoryEntry[]>([]);
   const [usage, setUsage] = useState<SelectorCreationUsage | null>(null);
   const [showPicker, setShowPicker] = useState(false);
@@ -31,14 +29,13 @@ export function usePopupState() {
         undefined as never
       );
 
-      const { auth, session, history } = snapshot;
+      const { auth, session, history, lastMode } = snapshot;
       // set the popup state from the snapshot
       setAuth(auth);
       setSession(session);
       setHistory(history);
-      setSelectorGenerationError(
-        session?.finalResult?.status === "error" ? session.finalResult : null
-      );
+      setLastMode(lastMode);
+      if (lastMode) setMode(lastMode); // preselect it in the chooser too
     } catch {
       setBootstrapError(
         "Couldn’t reach Intuned. Check your connection and retry."
@@ -57,24 +54,18 @@ export function usePopupState() {
         PopupMessageType.SessionStateChanged,
         ({ session: next }) => {
           setSession(next);
-          if (next?.finalResult?.status === "error")
-            setSelectorGenerationError(next.finalResult);
         }
       ),
       messagingClient.onEvent(
         PopupMessageType.SelectorGenerationSettled,
-        ({ result, historyEntry }) => {
-          if (result.status === "error") {
-            setSelectorGenerationError(result);
-            return;
-          }
+        ({ historyEntry }) => {
+          setSession(null);
           if (historyEntry) {
             setHistory((prev) => [
               historyEntry,
               ...prev.filter((e) => e.id !== historyEntry.id),
             ]);
           }
-          setSelectorGenerationError(null);
           setShowPicker(false);
         }
       ),
@@ -115,7 +106,6 @@ export function usePopupState() {
     );
     setAuth(state);
     setSession(null);
-    setSelectorGenerationError(null);
   }, []);
 
   const startSession = useCallback(async (picked: SelectorMode) => {
@@ -144,17 +134,15 @@ export function usePopupState() {
     }
   }, []);
 
-  const startNew = useCallback(() => {
-    setSelectorGenerationError(null);
-    setSession(null);
-    setShowPicker(true);
-  }, []);
-
   const openPicker = useCallback(() => {
-    setSelectorGenerationError(null);
     setSession(null);
+    if (lastMode) {
+      // start the picker directly in the last used mode instead of showing the chooser
+      void startSession(lastMode);
+      return;
+    }
     setShowPicker(true);
-  }, []);
+  }, [lastMode, startSession]);
 
   const cancelSession = useCallback(async () => {
     const sessionId = session?.sessionId;
@@ -169,7 +157,6 @@ export function usePopupState() {
       }
     }
     setSession(null);
-    setSelectorGenerationError(null);
   }, [session?.sessionId]);
 
   const chipState: ChipState = bootstrapError
@@ -183,7 +170,6 @@ export function usePopupState() {
   return {
     auth,
     session,
-    selectorGenerationError,
     bootstrapError,
     mode,
     history,
@@ -196,7 +182,6 @@ export function usePopupState() {
     bootstrap,
     signOut,
     startSession,
-    startNew,
     openPicker,
     cancelSession,
   };

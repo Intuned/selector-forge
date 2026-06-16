@@ -53,3 +53,4 @@ export {
   loadSelectorHistory,
   updateSelectorHistoryEntry,
 } from "./history";
+export { clearLastMode, loadLastMode, saveLastMode } from "./prefs";

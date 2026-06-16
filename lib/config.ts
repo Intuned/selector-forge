@@ -25,3 +25,8 @@ export async function getSelectorFeedbackUrl(): Promise<string> {
   const apiBase = await getApiBase();
   return `${apiBase}/api/selectors/feedback`;
 }
+
+export async function getSettingsUrl(): Promise<string> {
+  const apiBase = await getApiBase();
+  return `${apiBase}/settings/workspace`;
+}

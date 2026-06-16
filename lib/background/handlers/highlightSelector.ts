@@ -3,7 +3,7 @@ import type { BackgroundHandler } from "@/lib/background";
 
 export const handleHighlightSelector: BackgroundHandler<
   BackgroundMessageType.HighlightSelector
-> = async ({ selector }, { backgroundMessagingClient }) => {
+> = async ({ selector, countOnly }, { backgroundMessagingClient }) => {
   const [tab] = await browser.tabs.query({
     active: true,
     currentWindow: true,
@@ -14,7 +14,7 @@ export const handleHighlightSelector: BackgroundHandler<
     return await backgroundMessagingClient.sendMessageToContent(
       tab.id,
       ContentMessageType.HighlightSelector,
-      { selector }
+      { selector, countOnly }
     );
   } catch {
     return { matchCount: 0 };

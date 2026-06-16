@@ -1,5 +1,5 @@
 import { BackgroundMessageType, ContentMessageType } from "@/lib/messaging";
-import { SELECTOR_HISTORY_SCHEMA_VERSION } from "@/lib/state";
+import { SELECTOR_HISTORY_SCHEMA_VERSION, saveLastMode } from "@/lib/state";
 import type { BackgroundHandler } from "@/lib/background";
 
 export const handleStartPickerSession: BackgroundHandler<
@@ -22,6 +22,9 @@ export const handleStartPickerSession: BackgroundHandler<
   if (tabId == null) {
     throw new Error("No active tab to start a selector session in");
   }
+
+
+  await saveLastMode(mode);
 
   state.setMeta({ tabId });
   const sessionId = crypto.randomUUID();

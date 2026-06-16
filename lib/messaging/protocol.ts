@@ -98,6 +98,7 @@ export interface BootstrapPopupResponse {
   auth: AuthState;
   session: SelectorCreateState | null;
   history: SelectorHistoryEntry[];
+  lastMode: SelectorMode | null;
 }
 
 export type BackgroundProtocolMap = {
@@ -166,6 +167,12 @@ export interface TestSelectorsRequest {
 
 export interface HighlightSelectorRequest {
   selector: SelectorRecord;
+  /**
+   * When true, only count matches on the active page without drawing the
+   * highlight overlay. Used by the history list to show a live match count for
+   * every entry without flashing overlays for all of them at once.
+   */
+  countOnly?: boolean;
 }
 
 export interface HighlightSelectorResult {

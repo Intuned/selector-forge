@@ -6,12 +6,14 @@ import {
   type BackgroundMessagingClient,
 } from "@/lib/messaging";
 import { appendSelectorHistory } from "@/lib/state";
+import { generalizeArrayXpath } from "@/lib/content/dom/arrayXpath";
 import type {
   BrowserResultRecord,
   FinalSelectorResult,
   SelectorCreateResponse,
   SelectorHistoryEntry,
   SelectorCreateState,
+  SelectorRecord,
   SelectorState,
   SelectorStatus,
 } from "@/lib/state";
@@ -22,6 +24,24 @@ export interface AgentLoopDeps {
 }
 
 const MAX_BACKEND_STEPS = 20;
+
+/**
+ * Deterministic xpath used to seed a fallback history entry from the user's
+ * picks when generation fails. For list mode we generalize all picked xpaths
+ * into one index-stripped xpath that matches every item (e.g. `…/li[1]/a` +
+ * `…/li[3]/a` -> `…/li/a`); if the picks don't form a clean array we fall back
+ * to the first pick. For single mode it's just the picked element's xpath.
+ */
+function seedFallbackXpath(session: SelectorCreateState): string | undefined {
+  const xpaths = session.targets
+    .map((t) => t.elementXpath)
+    .filter((x): x is string => !!x);
+  if (xpaths.length === 0) return undefined;
+  if (session.mode === "list" && xpaths.length >= 2) {
+    return generalizeArrayXpath(xpaths) ?? xpaths[0];
+  }
+  return xpaths[0];
+}
 
 export type AgentLoopStatus =
   | Extract<SelectorStatus, "running" | "awaiting_browser">
@@ -172,26 +192,28 @@ export class AgentLoopController {
       }));
     }
 
-    // On success, capture the settled selector into durable history. `css` is
-    // the agent's best generated selector; `xpath` is seeded from the picked
-    // element (`targets[].elementXpath`) unless the best selector is itself an
-    // xpath.
+    const tabId = this.deps.state.getMeta()?.tabId ?? null;
     let historyEntry: SelectorHistoryEntry | undefined;
-    if (session && result.status !== "error" && result.bestSelector) {
-      const best = result.bestSelector;
-      const seededXpath = session.targets.find(
-        (t) => t.elementXpath
-      )?.elementXpath;
-      const entry: SelectorHistoryEntry = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        url: session.page.url,
-        mode: session.mode,
-        css: best.type === "css" ? best.value : undefined,
-        xpath: best.type === "xpath" ? best.value : seededXpath,
-        langsmithRunId: result.langsmithRunId,
-      };
-      if (entry.css || entry.xpath) {
+    if (session) {
+      const succeeded = result.status !== "error" && !!result.bestSelector;
+      const seededXpath = seedFallbackXpath(session);
+      const selector: SelectorRecord | undefined =
+        succeeded && result.bestSelector
+          ? result.bestSelector
+          : seededXpath
+          ? { type: "xpath", value: seededXpath }
+          : undefined;
+      if (selector) {
+        const entry: SelectorHistoryEntry = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          url: session.page.url,
+          mode: session.mode,
+          selector,
+          // Only successful runs carry a run id; its absence flags a fallback.
+          langsmithRunId: succeeded ? result.langsmithRunId : undefined,
+          matchCount: await this.countMatches(tabId, selector),
+        };
         try {
           await appendSelectorHistory(entry);
           historyEntry = entry;
@@ -201,7 +223,6 @@ export class AgentLoopController {
       }
     }
 
-    const tabId = this.deps.state.getMeta()?.tabId ?? null;
     if (tabId != null) {
       try {
         await this.deps.backgroundMessagingClient.sendMessageToContent(
@@ -225,6 +246,29 @@ export class AgentLoopController {
       await browser.action.openPopup();
     } catch (error) {
       console.debug("[selector-extension] openPopup not allowed", error);
+    }
+  }
+
+  /**
+   * Count how many elements the selector matches on the source tab, without
+   * drawing an overlay. Best effort: an unreachable/closed tab counts as 0 so a
+   * finished generation still stores an entry.
+   */
+  private async countMatches(
+    tabId: number | null,
+    selector: SelectorRecord
+  ): Promise<number> {
+    if (tabId == null) return 0;
+    try {
+      const { matchCount } =
+        await this.deps.backgroundMessagingClient.sendMessageToContent(
+          tabId,
+          ContentMessageType.HighlightSelector,
+          { selector, countOnly: true }
+        );
+      return matchCount;
+    } catch {
+      return 0;
     }
   }
 

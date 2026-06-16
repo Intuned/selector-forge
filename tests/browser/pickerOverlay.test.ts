@@ -193,6 +193,62 @@ describe("PickerOverlay", () => {
     });
   });
 
+  describe("list mode predictions", () => {
+    function predictedBoxes(): NodeListOf<Element> {
+      const host = document.querySelector("[data-intuned-picker]")!;
+      return host.shadowRoot!.querySelectorAll(".predicted-box");
+    }
+
+    beforeEach(() => {
+      // No ids — computeXPath emits sibling indices so the picks form an array.
+      document.body.innerHTML = `
+        <div><ul>
+          <li class="row">one</li>
+          <li class="row">two</li>
+          <li class="row">three</li>
+          <li class="row">four</li>
+        </ul></div>
+      `;
+      overlay = new PickerOverlay("list", { onSubmit, onCancel });
+      overlay.mount();
+    });
+
+    it("predicts the rest of the array once two items are picked", () => {
+      const items = document.querySelectorAll("li");
+      dispatchClick(items[0]);
+      expect(predictedBoxes()).toHaveLength(0); // one pick — nothing to predict
+
+      dispatchClick(items[2]);
+      // 4 items in the array, 2 picked → 2 locked predictions
+      expect(predictedBoxes()).toHaveLength(2);
+    });
+
+    it("locks predictions — clicking one neither selects nor submits it", () => {
+      const items = document.querySelectorAll("li");
+      dispatchClick(items[0]);
+      dispatchClick(items[2]);
+      expect(predictedBoxes()).toHaveLength(2);
+
+      dispatchClick(items[1]); // a predicted item — must be a no-op
+      expect(predictedBoxes()).toHaveLength(2);
+
+      dispatchKey("Enter");
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      // only the explicit picks are submitted — predictions stay local
+      expect(onSubmit.mock.calls[0][0]).toEqual([items[0], items[2]]);
+    });
+
+    it("clears predictions when the picks drop below two", () => {
+      const items = document.querySelectorAll("li");
+      dispatchClick(items[0]);
+      dispatchClick(items[2]);
+      expect(predictedBoxes()).toHaveLength(2);
+
+      dispatchClick(items[0]); // toggle the first pick back off
+      expect(predictedBoxes()).toHaveLength(0);
+    });
+  });
+
   describe("event suppression while idle", () => {
     it("suppresses page mousedowns so drag-select / focus changes don't fire", () => {
       overlay = new PickerOverlay("single", { onSubmit, onCancel });

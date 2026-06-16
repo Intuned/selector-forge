@@ -110,6 +110,12 @@ button {
   gap: 7px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .brandName {
   font-size: 13px;
   font-weight: 700;
@@ -469,59 +475,163 @@ button {
 .historyList {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-.historyItem {
-  border-bottom: 1px solid var(--border);
-}
-
-.historyItem:last-child {
-  border-bottom: none;
-}
-
-.historyRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 10px 0;
-}
-
-/* The selector text + meta double as the expand/collapse hit target. */
-.historyMain {
-  flex: 1;
-  min-width: 0;
+/* Each item is a self-contained card showing the single agent selector. No
+   expand/collapse — it's always visible. */
+.resultCard {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+  gap: 10px;
+  padding: 11px 12px;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
-.historySelector {
-  font: 12.5px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: 500;
+.resultCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.resultIdentity {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Pill that names the selector type — color-coded so css/xpath read at a
+   glance (blue = xpath, green = css). */
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+/* css/xpath share one brand-toned badge — the label carries the distinction. */
+.typeBadgeXpath,
+.typeBadgeCss {
+  color: var(--primary);
+  background: var(--primary-tint);
+}
+
+.matchCount {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Short "generation failed — fallback" line on a fallback card. */
+.failNote {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  /* Negative bottom margin trims the card's 10px row gap so the message sits
+     closer to the selector row below it. */
+  margin: 0 0 -4px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+.failNote svg {
+  flex: none;
+}
+
+.resultCardBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Square icon button that highlights the selector on the active page. */
+.locateBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--muted-soft);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.locateBtn:hover {
+  color: var(--primary);
+  border-color: var(--primary-ring);
+}
+
+.locateBtnFound,
+.locateBtnFound:hover {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+.locateBtnMiss,
+.locateBtnMiss:hover {
+  color: var(--danger);
+  background: #fef2f2;
+  border-color: transparent;
+}
+
+.resultSelector {
+  flex: 1;
+  min-width: 0;
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--fg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
 }
 
-.historyMeta {
-  font-size: 11px;
-  color: var(--muted-soft);
-}
-
-.historyActions {
-  display: flex;
+.copyBtn {
+  display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 5px;
   flex: none;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  /* Text shares the button's muted border tone rather than full-contrast fg. */
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
+.copyBtn:hover {
+  color: var(--primary);
+  border-color: var(--primary-ring);
+}
+
+.copyBtnDone,
+.copyBtnDone:hover {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+/* Shared icon button — header actions reuse this. */
 .iconBtn {
   display: inline-flex;
   align-items: center;
@@ -542,146 +652,14 @@ button {
   background: #f4f4f5;
 }
 
-.historyChevron {
-  transform: rotate(-90deg);
-  transition: transform 0.15s ease;
-}
-
-.historyChevronOpen {
-  transform: rotate(0deg);
-}
-
-.historyExpand {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 2px 0 12px;
-}
-
-.segmented {
-  align-self: flex-start;
-  display: inline-flex;
-  padding: 2px;
-  background: var(--track);
-  border-radius: var(--radius-sm);
-}
-
-.segBtn {
-  flex: 1;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-
-.segBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.segBtnActive {
-  color: var(--fg);
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.codeBox {
-  display: block;
-  /* Right padding clears the in-box locate + copy buttons. */
-  padding: 5px 62px 5px 10px;
-  background: #fafafa;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--fg);
-  /* Keep the selector on a single row; scroll horizontally when it overflows. */
-  white-space: nowrap;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-/* Copy lives as an icon-only button overlaid in the selector's code box. */
-.codeWrap {
-  position: relative;
-}
-
-/* Locate + Copy actions, overlaid at the right edge of the selector code box. */
-.codeActions {
-  position: absolute;
-  top: 50%;
-  right: 1px;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  /* Fade the scrolling selector text out behind the buttons so it never
-     shows through them. The solid color matches the code box background. */
-  padding-left: 14px;
-  background: linear-gradient(to right, transparent, #fafafa 14px);
-  border-radius: var(--radius);
-}
-
-.codeBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  color: var(--muted-soft);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-
-.codeBtn:hover:not(:disabled) {
-  color: var(--primary);
-  background: var(--primary-tint);
-}
-
-.codeBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.codeBtnDone,
-.codeBtnDone:hover:not(:disabled),
-.codeBtnFound,
-.codeBtnFound:hover:not(:disabled) {
-  color: var(--ok);
-  background: var(--ok-bg);
-}
-
-.codeBtnMiss,
-.codeBtnMiss:hover:not(:disabled) {
-  color: var(--danger);
-  background: #fef2f2;
-}
-
 /* ── selector feedback (thumbs up/down) ─────────────────────────────────── */
-
-.feedbackRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.feedbackLabel {
-  font-size: 11px;
-  color: var(--muted);
-}
 
 .feedbackActions {
   display: inline-flex;
   gap: 2px;
 }
 
+/* Ghost icon buttons: no chrome at rest, only a subtle hover. */
 .feedbackBtn {
   display: inline-flex;
   align-items: center;
@@ -690,10 +668,10 @@ button {
   height: 24px;
   color: var(--muted-soft);
   background: transparent;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .feedbackBtn:hover {
@@ -704,15 +682,13 @@ button {
 .feedbackBtnUp,
 .feedbackBtnUp:hover {
   color: var(--ok);
-  background: var(--ok-bg);
-  border-color: transparent;
+  background: transparent;
 }
 
 .feedbackBtnDown,
 .feedbackBtnDown:hover {
   color: var(--danger);
-  background: #fef2f2;
-  border-color: transparent;
+  background: transparent;
 }
 
 /* ── status / auth ──────────────────────────────────────────────────────── */

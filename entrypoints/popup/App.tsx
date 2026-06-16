@@ -7,7 +7,6 @@ export function App() {
   const {
     auth,
     session,
-    selectorGenerationError,
     bootstrapError,
     mode,
     history,
@@ -20,7 +19,6 @@ export function App() {
     bootstrap,
     signOut,
     startSession,
-    startNew,
     openPicker,
     cancelSession,
   } = usePopupState();
@@ -42,13 +40,11 @@ export function App() {
         bootstrapError={bootstrapError}
         authState={auth}
         session={session}
-        selectorGenerationError={selectorGenerationError}
         history={history}
         showPicker={showPicker} // which tab to show: history, or picker
         mode={mode}
         onModeChange={setMode}
         onPick={startSession}
-        onNew={startNew}
         onOpenPicker={openPicker}
         onCancel={cancelSession}
         onRetry={bootstrap}
