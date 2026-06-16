@@ -2,7 +2,7 @@ import type { SelectorRecord } from "@/lib/state";
 import { queryAll } from "./elementRegistry";
 
 const HIGHLIGHT_MS = 1800;
-const ACCENT = "#f2683c";
+const ACCENT = "#65a30d";
 
 let activeLayer: HTMLElement | null = null;
 let activeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -45,7 +45,7 @@ export function highlightSelector(selector: SelectorRecord): number {
       `border:2px solid ${ACCENT}`,
       "border-radius:3px",
       `background:${ACCENT}1f`,
-      `box-shadow:0 0 0 2px ${ACCENT}40, 0 2px 10px ${ACCENT}55`,
+      `box-shadow:0 0 0 2px ${ACCENT}33, 0 2px 8px ${ACCENT}40`,
       "pointer-events:none",
       "box-sizing:border-box",
     ].join(";");

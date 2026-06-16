@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Rasterizes the brand SVG into the PNG sizes WXT auto-detects from
 // `public/icon/<size>.png` (manifest `icons` + `action.default_icon`).
-// Source SVG is vendored at `assets/logo-colored.svg` so this app stays
+// Source SVG is vendored at `assets/forge-icon-24.svg` so this app stays
 // standalone (it is not part of the monorepo workspace). Re-run with `yarn icons`.
 import sharp from "sharp";
 import { mkdir, readFile } from "node:fs/promises";
@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SRC = path.join(projectRoot, "assets/logo-colored.svg");
+const SRC = path.join(projectRoot, "assets/forge-icon-24.svg");
 const OUT_DIR = path.join(projectRoot, "public/icon");
 
 // Chrome uses 16/32/48/128; 48 covers Firefox too.

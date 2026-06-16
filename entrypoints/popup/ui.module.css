@@ -5,12 +5,15 @@
  */
 
 :root {
-  /* Intuned brand orange. */
-  --primary: hsl(17 90% 57%);
-  --primary-hover: hsl(17 90% 52%);
-  --primary-active: hsl(17 90% 47%);
-  --primary-tint: hsl(20 85% 97%);
-  --primary-ring: hsl(17 90% 90%);
+  /* Selector Forge brand lime. Used as a FILL only (the bright lime needs dark
+     content on top); near-black `--ink` carries foreground accents on white. */
+  --primary: #c8ff2e;
+  --primary-hover: #b5ef14;
+  --primary-active: #a2d900;
+  --primary-tint: #f5ffdb;
+  --primary-ring: #e4ffb3;
+  --primary-fg: #0b0b0b; /* text/icons on top of lime fills */
+  --ink: #0b0b0b; /* brand accent on white surfaces */
 
   --bg: #ffffff;
   --fg: #1c1c1f;
@@ -23,7 +26,7 @@
   --ok: #16a34a;
   --ok-bg: #d6f3df;
   --danger: #dc2626;
-  --avatar: #cc2952;
+  --avatar: #0b0b0b;
 
   --radius-btn: 4px;
   --radius-sm: 6px;
@@ -124,8 +127,9 @@ button {
 
 .logo {
   display: block;
-  width: 15px;
+  width: 16px;
   height: 16px;
+  border-radius: 3px;
   flex: none;
 }
 
@@ -333,14 +337,14 @@ button {
 }
 
 .modeCardSelected {
-  border-color: var(--primary);
+  border-color: var(--ink);
   background: var(--primary-tint);
 }
 
 .modeIcon {
   flex: none;
   margin-top: 1px;
-  color: var(--primary);
+  color: var(--ink);
 }
 
 .modeBody {
@@ -381,14 +385,14 @@ button {
 }
 
 .radioChecked {
-  border-color: var(--primary);
+  border-color: var(--ink);
 }
 
 .radioDot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--ink);
 }
 
 /* ── buttons ────────────────────────────────────────────────────────────── */
@@ -402,7 +406,7 @@ button {
   padding: 7px 14px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #fff;
+  color: var(--primary-fg);
   background: var(--primary);
   border: none;
   border-radius: var(--radius-btn);
@@ -519,7 +523,7 @@ button {
 /* css/xpath share one brand-toned badge — the label carries the distinction. */
 .typeBadgeXpath,
 .typeBadgeCss {
-  color: var(--primary);
+  color: var(--ink);
   background: var(--primary-tint);
 }
 
@@ -573,8 +577,8 @@ button {
 }
 
 .locateBtn:hover {
-  color: var(--primary);
-  border-color: var(--primary-ring);
+  color: var(--ink);
+  border-color: var(--primary);
 }
 
 .locateBtnFound,
@@ -620,8 +624,8 @@ button {
 }
 
 .copyBtn:hover {
-  color: var(--primary);
-  border-color: var(--primary-ring);
+  color: var(--ink);
+  border-color: var(--primary);
 }
 
 .copyBtnDone,
@@ -728,7 +732,7 @@ button {
   height: 18px;
   border-radius: 999px;
   border: 2.5px solid var(--track);
-  border-top-color: var(--primary);
+  border-top-color: var(--ink);
   animation: spin 0.7s linear infinite;
 }
 
@@ -877,7 +881,7 @@ button {
 
 .input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--ink);
   box-shadow: 0 0 0 2px var(--primary-ring);
 }
 

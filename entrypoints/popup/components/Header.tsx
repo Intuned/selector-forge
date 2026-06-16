@@ -2,7 +2,7 @@ import type { AuthIdentity } from "@/lib/auth";
 import type { SelectorCreationUsage } from "@/lib/graphql/usage";
 import { getSettingsUrl } from "@/lib/config";
 import styles from "../ui.module.css";
-import { IntunedLogo, SettingsIcon } from "../icons";
+import { ForgeLogo, SettingsIcon } from "../icons";
 import { UsageBar } from "./UsageBar";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
@@ -26,7 +26,7 @@ export function Header({
     <header className={styles.header}>
       <div className={styles.headerTop}>
         <div className={styles.brand}>
-          <IntunedLogo className={styles.logo} />
+          <ForgeLogo className={styles.logo} />
           <span className={styles.brandName}>Selector</span>
         </div>
         <div className={styles.headerActions}>

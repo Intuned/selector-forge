@@ -1,8 +1,10 @@
 :host {
   all: initial;
-  /* Intuned brand tokens (mirror popup/ui.module.css). */
-  --primary: hsl(17 90% 57%);
-  --primary-hover: hsl(17 90% 52%);
+  /* Selector Forge brand tokens (mirror popup/ui.module.css). */
+  --primary: #c8ff2e;
+  --primary-hover: #b5ef14;
+  --primary-fg: #0b0b0b;
+  --ink: #0b0b0b;
   --fg: #1c1c1f;
   --muted: #6b7280;
   --border: #ebebee;
@@ -23,8 +25,8 @@
     height 60ms linear;
 }
 .hover-box {
-  background: hsla(17, 90%, 57%, 0.16);
-  outline: 2px solid var(--primary);
+  background: rgba(200, 255, 46, 0.12);
+  outline: 2px solid #65a30d;
   display: none;
 }
 .sel-box {
@@ -87,8 +89,10 @@
 }
 .toolbar .logo {
   flex: 0 0 auto;
-  width: 15px;
+  width: 16px;
   height: 16px;
+  border-radius: 3px;
+  overflow: hidden;
   display: block;
 }
 .toolbar .logo svg {
@@ -136,14 +140,14 @@
 }
 .toolbar .done {
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-fg);
 }
 .toolbar .done:hover:not(:disabled) {
   background: var(--primary-hover);
 }
 .toolbar .done .kbd {
-  background: rgba(255, 255, 255, 0.24);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--primary-fg);
 }
 .toolbar .done:disabled {
   background: #f0f0f2;

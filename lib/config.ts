@@ -1,5 +1,5 @@
-const DEFAULT_API_BASE = "http://localhost:3000";
-export const GRAPHQL_API = "http://localhost:8080/v1/graphql";
+const DEFAULT_API_BASE = "https://app.intuned.io";
+export const GRAPHQL_API = "https://metricsshop.hasura.app/v1/graphql";
 const API_BASE_OVERRIDE_KEY = "config.apiBase";
 
 export async function getApiBase(): Promise<string> {
