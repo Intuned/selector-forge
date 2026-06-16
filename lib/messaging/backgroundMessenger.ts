@@ -30,7 +30,8 @@ export interface BackgroundMessagingClient {
   sendMessageToContent<K extends ContentMessageType>(
     tabId: number,
     type: K,
-    data: GetDataType<ContentProtocolMap[K]>
+    data: GetDataType<ContentProtocolMap[K]>,
+    frameId?: number
   ): Promise<GetReturnType<ContentProtocolMap[K]>>;
 
   sendMessageToPopup<K extends PopupMessageType>(
@@ -41,11 +42,11 @@ export interface BackgroundMessagingClient {
 
 export function createBackgroundMessagingClient(): BackgroundMessagingClient {
   return {
-    sendMessageToContent: ((tabId, type, data) =>
+    sendMessageToContent: ((tabId, type, data, frameId) =>
       contentProtocol.sendMessage(
         type,
         data,
-        tabId
+        frameId == null ? tabId : { tabId, frameId }
       )) as BackgroundMessagingClient["sendMessageToContent"],
 
     // Popup may be closed — swallow the runtime error so callers don't need

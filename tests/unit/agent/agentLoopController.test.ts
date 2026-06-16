@@ -17,19 +17,18 @@ import {
 } from "../background/harness";
 
 // ── auth mock ────────────────────────────────────────────────────────────────
-// The loop attaches headers from the active auth method; mock the module so
-// the providers' own fetches don't consume the scripted fetch responses.
+// The loop POSTs through `fetchIntunedApi`, which applies the active auth
+// method's headers/query params internally. Mock it to a thin passthrough to the
+// scripted global `fetch`, so tests drive the loop via the fetch script without
+// exercising real auth.
 
-const { getApiHeadersMock, getApiQueryParamsMock } = vi.hoisted(() => ({
-  getApiHeadersMock: vi.fn<() => Promise<Record<string, string> | undefined>>(),
-  getApiQueryParamsMock: vi.fn<
-    () => Promise<Record<string, string> | undefined>
-  >(),
+const { fetchIntunedApiMock } = vi.hoisted(() => ({
+  fetchIntunedApiMock:
+    vi.fn<(url: string | URL, init?: RequestInit) => Promise<Response>>(),
 }));
 
 vi.mock("@/lib/auth", () => ({
-  getApiHeaders: getApiHeadersMock,
-  getApiQueryParams: getApiQueryParamsMock,
+  fetchIntunedApi: fetchIntunedApiMock,
 }));
 
 // ── fetch script ─────────────────────────────────────────────────────────────
@@ -175,11 +174,12 @@ describe("AgentLoopController", () => {
   beforeEach(() => {
     fakeBrowser.reset();
     silenceConsole();
-    // Module-level vi.fn mocks survive restoreAllMocks: reset them by hand.
-    getApiHeadersMock.mockReset().mockImplementation(async () => ({
-      Authorization: "Bearer test-token",
-    }));
-    getApiQueryParamsMock.mockReset().mockResolvedValue(undefined);
+    // Module-level vi.fn mocks survive restoreAllMocks: re-establish the
+    // passthrough by hand. `fetch` is resolved at call time, so it picks up
+    // whatever each test stubs via `scriptFetch*`.
+    fetchIntunedApiMock
+      .mockReset()
+      .mockImplementation((url, init) => fetch(url as string, init));
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -190,6 +190,9 @@ describe("AgentLoopController", () => {
     it("done in one turn → settle dispatches DeactivatePicker + SelectorGenerationSettled, status returns to idle", async () => {
       const { state, messaging, controller, sessionId, tabId } = setupLoop();
       scriptFetch([doneOk(state.get()!)]);
+      messaging.whenContent(ContentMessageType.HighlightSelector, () => ({
+        matchCount: 1,
+      }));
 
       await controller.runAgentLoop(sessionId);
 
@@ -200,8 +203,14 @@ describe("AgentLoopController", () => {
         bestSelector: { type: "css", value: "#picked" },
       });
 
-      // Settle side-effects.
+      // Settle side-effects: count the winning selector's matches for the
+      // history entry, then tear down the picker and notify the popup.
       expect(messaging.contentCalls).toEqual([
+        expect.objectContaining({
+          tabId,
+          type: ContentMessageType.HighlightSelector,
+          data: { selector: { type: "css", value: "#picked" }, countOnly: true },
+        }),
         expect.objectContaining({
           tabId,
           type: ContentMessageType.DeactivatePicker,
@@ -209,16 +218,24 @@ describe("AgentLoopController", () => {
         }),
       ]);
       expect(messaging.popupCalls).toEqual([
-        {
+        expect.objectContaining({
           type: PopupMessageType.SelectorGenerationSettled,
-          data: {
+          data: expect.objectContaining({
             sessionId,
             result: {
               status: "ok",
               bestSelector: { type: "css", value: "#picked" },
             },
-          },
-        },
+            // settle() folds the winning selector into a history entry; id and
+            // createdAt are nondeterministic, so match only the stable fields.
+            historyEntry: expect.objectContaining({
+              mode: "single",
+              url: "https://example.com/",
+              selector: { type: "css", value: "#picked" },
+              matchCount: 1,
+            }),
+          }),
+        }),
       ]);
 
       // Status released for the next session.
@@ -244,6 +261,9 @@ describe("AgentLoopController", () => {
       messaging.whenContent(ContentMessageType.TestSelectors, () => ({
         selectorResults,
       }));
+      messaging.whenContent(ContentMessageType.HighlightSelector, () => ({
+        matchCount: 1,
+      }));
 
       await controller.runAgentLoop(sessionId);
 
@@ -267,9 +287,10 @@ describe("AgentLoopController", () => {
       // Final state is the second response's terminal state.
       expect(state.get()?.status).toBe("done");
 
-      // Both fetch turns ran, then settle ran.
+      // Both fetch turns ran, then settle ran (count matches → deactivate).
       expect(messaging.contentCalls.map((c) => c.type)).toEqual([
         ContentMessageType.TestSelectors,
+        ContentMessageType.HighlightSelector,
         ContentMessageType.DeactivatePicker,
       ]);
       expect(messaging.popupCalls[0]?.type).toBe(
@@ -311,72 +332,29 @@ describe("AgentLoopController", () => {
     });
   });
 
-  describe("auth", () => {
-    it("a configured method sends its auth headers and omits cookies", async () => {
+  // Auth request shaping (headers / credentials / query params) lives in
+  // `fetchIntunedApi` now, covered by tests/unit/auth/request.test.ts. Here we
+  // only assert the controller's contract with it: it POSTs the session and
+  // surfaces a rejection (e.g. signed out) as a settled error.
+  describe("backend request", () => {
+    it("POSTs the session state through fetchIntunedApi", async () => {
       const { state, controller, sessionId } = setupLoop();
-      const fetchMock = scriptFetch([doneOk(state.get()!)]);
+      scriptFetch([doneOk(state.get()!)]);
 
       await controller.runAgentLoop(sessionId);
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-            Authorization: "Bearer test-token",
-          }),
-          credentials: "omit",
-        })
-      );
+      expect(fetchIntunedApiMock).toHaveBeenCalledTimes(1);
+      const [, init] = fetchIntunedApiMock.mock.calls[0];
+      expect(init?.method).toBe("POST");
+      expect(JSON.parse(init?.body as string)).toMatchObject({ sessionId });
     });
 
-    it("session auth (no headers) relies on browser-injected cookies", async () => {
-      const { state, controller, sessionId } = setupLoop();
-      getApiHeadersMock.mockResolvedValue(undefined);
-      const fetchMock = scriptFetch([doneOk(state.get()!)]);
-
-      await controller.runAgentLoop(sessionId);
-
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ credentials: "include" })
-      );
-      const init = fetchMock.mock.calls[0][1] as RequestInit;
-      expect(init.headers).toEqual({ "Content-Type": "application/json" });
-    });
-
-    it("appends the method's auth query params to the create URL (api-key workspace scoping)", async () => {
-      const { state, controller, sessionId } = setupLoop();
-      getApiHeadersMock.mockResolvedValue({ "x-api-key": "in1_key" });
-      getApiQueryParamsMock.mockResolvedValue({ workspaceId: "ws-1" });
-      const fetchMock = scriptFetch([doneOk(state.get()!)]);
-
-      await controller.runAgentLoop(sessionId);
-
-      const url = new URL(fetchMock.mock.calls[0][0] as string);
-      expect(url.pathname).toBe("/api/selectors/create");
-      expect(url.searchParams.get("workspaceId")).toBe("ws-1");
-    });
-
-    it("no auth query params leaves the create URL bare", async () => {
-      const { state, controller, sessionId } = setupLoop();
-      const fetchMock = scriptFetch([doneOk(state.get()!)]);
-
-      await controller.runAgentLoop(sessionId);
-
-      const url = new URL(fetchMock.mock.calls[0][0] as string);
-      expect(url.search).toBe("");
-    });
-
-    it("signed out (no credentials) settles the session with the auth error", async () => {
+    it("settles the session with the auth error when the request rejects (signed out)", async () => {
       const { messaging, controller, sessionId } = setupLoop();
-      const fetchMock = vi.fn();
-      vi.stubGlobal("fetch", fetchMock);
-      getApiHeadersMock.mockRejectedValue(new Error("Not signed in"));
+      fetchIntunedApiMock.mockRejectedValue(new Error("Not signed in"));
 
       await controller.runAgentLoop(sessionId);
 
-      expect(fetchMock).not.toHaveBeenCalled();
       const settled = messaging.popupCalls[0];
       expect(settled?.type).toBe(PopupMessageType.SelectorGenerationSettled);
       expect((settled?.data as { result: { note?: string } }).result.note).toBe(

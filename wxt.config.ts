@@ -25,10 +25,12 @@ export default defineConfig({
       // Least privilege: activeTab is granted on the popup gesture. The picker is a
       // statically declared content script (see `entrypoints/content.ts`) the background
       // drives via message passing, so no `scripting` permission is needed.
+      // `contextMenus` adds the page right-click "Selector Forge" submenu
+      // (currently one item, "Single element"); see `lib/background/contextMenu.ts`.
       // `tabs` is required for the CLI bridge: a CDP-initiated session start has no
       // user gesture (so no activeTab grant), and the background must read tab
       // url/title to derive page context and match --tab URL filters.
-      permissions: ["storage", "activeTab", "tabs"],
+      permissions: ["storage", "activeTab", "contextMenus", "tabs"],
       // Lets the background service worker call the API host cross-origin. Prod
       // (`app.intuned.io`) is the default base URL; `dev.intuned.io` is kept so a
       // `config.apiBase` override (see `lib/config.ts`) can target it without a

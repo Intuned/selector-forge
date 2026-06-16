@@ -50,6 +50,7 @@ export enum BackgroundMessageType {
 // messages addressed to content scripts (from background)
 export enum ContentMessageType {
   ActivatePicker = "cs:activatePicker",
+  ProcessContextMenuItem = "cs:processContextMenuItem",
   DeactivatePicker = "cs:deactivatePicker",
   TestSelectors = "cs:testSelectors",
   HighlightSelector = "cs:highlightSelector",
@@ -190,6 +191,26 @@ export type ActivatePickerResponse =
   | { ok: true }
   | { ok: false; reason: string };
 
+// A single "Selector Forge" submenu item. Shared by the background menu builder
+// and the message below, so the clicked item travels as one whole object.
+export interface ContextMenuItem {
+  id: string;
+  title: string;
+  mode: SelectorMode;
+}
+
+// BG -> CS: process the clicked context-menu item. Carries the whole item; the
+// content side maps its `mode` to an action against the tracked right-clicked
+// element, mounts the generating overlay, and fires `StartAgent`.
+export interface ProcessContextMenuItemRequest {
+  sessionId: string;
+  item: ContextMenuItem;
+}
+
+export type ProcessContextMenuItemResponse =
+  | { ok: true }
+  | { ok: false; reason: string };
+
 export interface TestSelectorsRequest {
   sessionId: string;
   requestId: string;
@@ -216,6 +237,9 @@ export type ContentProtocolMap = {
   [ContentMessageType.ActivatePicker]: (
     data: ActivatePickerRequest
   ) => ActivatePickerResponse;
+  [ContentMessageType.ProcessContextMenuItem]: (
+    data: ProcessContextMenuItemRequest
+  ) => ProcessContextMenuItemResponse;
   [ContentMessageType.DeactivatePicker]: (data: { sessionId: string }) => void;
 
   [ContentMessageType.TestSelectors]: (data: TestSelectorsRequest) => {

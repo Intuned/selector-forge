@@ -1,5 +1,6 @@
 import {
   contentHandlers,
+  ContextMenuTracker,
   PickerSession,
   registerContentHandlers,
   type ContentContext,
@@ -10,7 +11,9 @@ export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_idle",
   main: () => {
-    const picker = new PickerSession();
+    const contextMenu = new ContextMenuTracker();
+    contextMenu.addContextMenuListener();
+    const picker = new PickerSession(contextMenu);
     const contentMessagingClient = createContentMessagingClient();
     const context: ContentContext = { picker, contentMessagingClient };
 

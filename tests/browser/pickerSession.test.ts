@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PickerSession } from "../../lib/content/dom/pickerSession";
+import { ContextMenuTracker } from "../../lib/content/dom/contextMenuTracker";
 
 function dispatchClick(target: Element): void {
   target.dispatchEvent(
@@ -24,7 +25,7 @@ describe("PickerSession", () => {
         <li id="row-3" class="row">C</li>
       </ul>
     `;
-    session = new PickerSession();
+    session = new PickerSession(new ContextMenuTracker());
   });
 
   afterEach(async () => {

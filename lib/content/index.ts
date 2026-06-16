@@ -6,3 +6,4 @@ export {
 } from "./registerHandlers";
 export { contentHandlers } from "./handlers";
 export { PickerSession } from "./dom/pickerSession";
+export { ContextMenuTracker } from "./dom/contextMenuTracker";

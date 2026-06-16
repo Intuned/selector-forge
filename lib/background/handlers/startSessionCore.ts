@@ -2,12 +2,9 @@ import {
   ContentMessageType,
   type ActivatePickerResponse,
 } from "@/lib/messaging";
-import {
-  SELECTOR_HISTORY_SCHEMA_VERSION,
-  type PageContext,
-  type SelectorMode,
-} from "@/lib/state";
+import { type PageContext, type SelectorMode } from "@/lib/state";
 import type { BackgroundContext } from "@/lib/background";
+import { seedSelectorSession } from "../seedSession";
 
 /**
  * Session-start core shared by the popup path (`StartPickerSession`) and the
@@ -29,24 +26,7 @@ export async function seedAndActivateSession(
   // Abort any in-flight loop from a previous session.
   agentLoopController.cancel();
 
-  state.setMeta({ tabId });
-  const sessionId = crypto.randomUUID();
-
-  // initial state for the selector session
-  state.set({
-    schemaVersion: SELECTOR_HISTORY_SCHEMA_VERSION,
-    sessionId,
-    mode,
-    status: "picking",
-    page,
-    targets: [],
-    example: { inspectionView: "", targetElementIds: [] },
-    seedCandidates: [],
-    messages: [],
-    browserRequest: null,
-    browserResult: null,
-    correctSelectors: [],
-  });
+  const sessionId = seedSelectorSession(state, { tabId, mode, page });
 
   let response: ActivatePickerResponse;
   try {

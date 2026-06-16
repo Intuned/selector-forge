@@ -5,6 +5,7 @@ import type {
   SelectorStatus,
   TargetRecord,
 } from "@/lib/state";
+import { ContextMenuTracker } from "./contextMenuTracker";
 import { ElementRegistry } from "./elementRegistry";
 import { buildInspectionView } from "./inspectionView";
 import { PickerOverlay } from "./pickerOverlay";
@@ -44,6 +45,49 @@ function resolveSingleByXpath(xpath: string): Element | null {
 export class PickerSession {
   private currentRegistry: ElementRegistry | null = null;
   private currentOverlay: PickerOverlay | null = null;
+
+  // The right-click concern (listener + last-target state) is encapsulated in
+  // ContextMenuTracker and injected, keeping this class focused on the overlay
+  // and registry.
+  constructor(private readonly contextMenu: ContextMenuTracker) {}
+
+  /**
+   * Use the most recently right-clicked element (the context-menu target) as the
+   * sole target (single mode), mirroring what the overlay's `onSubmit` produces:
+   * a registry kept alive for the agent loop's `testSelectors`, plus a target
+   * record + inspection view. Also mounts the overlay in its "Generating
+   * selector…" state so the page right-click flow shows the same in-page status
+   * as the popup pick flow. The overlay is torn down on `DeactivatePicker`
+   * (settle or cancel).
+   */
+  async useContextMenuTarget(cb: { onCancel: () => void }): Promise<
+    | { ok: true; targets: TargetRecord[]; inspectionView: string }
+    | { ok: false; reason: string }
+  > {
+    const el = this.contextMenu.getTarget();
+    if (!el || !el.isConnected) {
+      return { ok: false, reason: "No right-clicked element to use." };
+    }
+
+    // Drop any stale overlay/registry, then anchor a fresh one on the element.
+    await this.deactivatePicker();
+    const registry = new ElementRegistry();
+    this.currentRegistry = registry;
+
+    const id = registry.idFor(el);
+    const targets: TargetRecord[] = [
+      { elementId: id, elementXpath: computeXPath(el) },
+    ];
+    const inspectionView = buildInspectionView([{ el, id }]);
+
+    // Mount the overlay in its submitted/generating state ("Generating
+    // selector…") while the agent loop runs.
+    const overlay = new PickerOverlay("single", { onCancel: cb.onCancel }, true);
+    this.currentOverlay = overlay;
+    overlay.mount();
+
+    return { ok: true, targets, inspectionView };
+  }
 
   async activatePicker(
     { mode, status, targets }: ActivatePickerInput,
