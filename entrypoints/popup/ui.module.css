@@ -295,6 +295,37 @@ button {
   transition: width 0.3s ease;
 }
 
+/* Loading state for the usage meter: a shimmering count chip + track, shown
+   until the usage query resolves (instead of a bare "…"). */
+.usageSkeleton {
+  display: inline-block;
+  width: 34px;
+  height: 11px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.usageSkeleton,
+.trackLoading {
+  background: linear-gradient(
+    90deg,
+    var(--track) 25%,
+    #e3e3e7 37%,
+    var(--track) 63%
+  );
+  background-size: 400% 100%;
+  animation: usageShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes usageShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
 /* ── eyebrow ────────────────────────────────────────────────────────────── */
 
 .eyebrow {
@@ -482,8 +513,8 @@ button {
   gap: 10px;
 }
 
-/* Each item is a self-contained card showing the single agent selector. No
-   expand/collapse — it's always visible. */
+/* Each item is a self-contained card showing the single agent selector. The
+   selector text can be expanded to its full value (see .resultSelectorPanel). */
 .resultCard {
   display: flex;
   flex-direction: column;
@@ -534,6 +565,28 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Subline under the top row: the site the selector was created on + when. Pulled
+   up against the card's 10px row gap so it reads as a caption of the row above. */
+.resultMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: -4px;
+  font-size: 11px;
+  color: var(--muted-soft);
+}
+
+.resultHost {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultMetaDot {
+  flex: none;
 }
 
 /* Short "generation failed — fallback" line on a fallback card. */
@@ -603,6 +656,55 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* The truncated selector text toggles the panel below (alongside the chevron),
+   so a click anywhere on it — including the ellipsis — reveals the full value. */
+.resultSelectorClickable {
+  cursor: pointer;
+}
+
+/* Expanded view: the full selector in a near-full-width code panel below the row,
+   wrapping freely instead of cramping the inline row. */
+.resultSelectorPanel {
+  display: block;
+  padding: 9px 11px;
+  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--fg);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Square toggle that wraps/collapses the selector text. Mirrors .locateBtn. */
+.expandBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--muted-soft);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.expandBtn:hover {
+  color: var(--ink);
+  border-color: var(--primary);
+}
+
+.expandBtn svg {
+  transition: transform 0.15s ease;
+}
+
+.expandBtnOpen svg {
+  transform: rotate(180deg);
 }
 
 .copyBtn {

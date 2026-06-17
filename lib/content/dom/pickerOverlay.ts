@@ -182,8 +182,32 @@ export class PickerOverlay {
     this.selectedLayer.remove();
     // Mode is locked in once picks are committed.
     if (this.modeToggle) this.modeToggle.style.display = "none";
-    this.statusEl.textContent = "Generating selector…";
+    this.renderProgress("generating");
     if (this.doneBtn) this.doneBtn.disabled = true;
+  }
+
+  /**
+   * Advance the submitted-state progress indicator. The agent loop runs
+   * generate → judge (test the candidates on the page); the background flips us
+   * to "judging" when it dispatches the selector test. No-op until submitted.
+   */
+  setPhase(phase: "generating" | "judging"): void {
+    if (!this.submitted) return;
+    this.renderProgress(phase);
+  }
+
+  /** Two-step indicator (Generating → Judging) shown while the agent runs. */
+  private renderProgress(phase: "generating" | "judging"): void {
+    // Prefixed state classes so they don't collide with the toolbar's `.done`
+    // button rule (which carries the lime fill).
+    const gen = phase === "judging" ? "prog-done" : "prog-active";
+    const judge = phase === "judging" ? "prog-active" : "prog-upcoming";
+    this.statusEl.innerHTML =
+      `<span class="prog">` +
+      `<span class="prog-step ${gen}"><i class="prog-dot"></i>Generating</span>` +
+      `<i class="prog-sep"></i>` +
+      `<span class="prog-step ${judge}"><i class="prog-dot"></i>Judging</span>` +
+      `</span>`;
   }
 
   private get windowListeners(): [keyof WindowEventMap, EventListener][] {

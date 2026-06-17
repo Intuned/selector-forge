@@ -176,6 +176,10 @@ export class PickerSession {
     selectorResults: SelectorResultRecord[];
     elementHtmlById?: Record<string, string>;
   }> {
+    // Testing candidates on the page is the "judging" phase — reflect it in the
+    // overlay's progress indicator (stays there for the rest of the run).
+    this.currentOverlay?.setPhase("judging");
+
     const registry = this.currentRegistry;
     if (!registry) {
       throw new Error("testSelectors called with no active picker session");
