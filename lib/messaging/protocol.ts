@@ -92,8 +92,11 @@ export interface ReportPickerErrorRequest {
 }
 
 export interface SubmitSelectorFeedbackRequest {
+  /** History entry the rating belongs to; the background persists it locally. */
+  entryId: string;
   langsmithRunId: string;
-  value: SelectorFeedback;
+  /** The rating, or null to clear it (clearing persists locally, sends nothing). */
+  value: SelectorFeedback | null;
   comment?: string;
 }
 export interface SubmitSelectorFeedbackResult {

@@ -8,15 +8,34 @@ import type { AuthState } from "@/lib/auth";
 import type { SelectorCreationUsage } from "@/lib/graphql/usage";
 import { BackgroundMessageType, PopupMessageType } from "@/lib/messaging";
 import { messagingClient } from "../messagingClient";
+import { readCachedSnapshot, writeCachedSnapshot } from "../snapshotCache";
 import type { ChipState } from "../types";
 
 export function usePopupState() {
-  const [auth, setAuth] = useState<AuthState | null>(null);
-  const [session, setSession] = useState<SelectorCreateState | null>(null);
+  // Seed from the last-known snapshot (synchronous localStorage) so repeat opens
+  // paint real content immediately instead of flashing the loading spinner while
+  // bootstrap round-trips the background. Only an *authenticated* snapshot is
+  // trusted — a cached "unauthenticated" is often stale (signed in via another
+  // tab the popup never saw), so we show the loader rather than flash sign-in.
+  const [optimistic] = useState(() => {
+    const snapshot = readCachedSnapshot();
+    return snapshot?.auth?.authenticated ? snapshot : null;
+  });
+
+  const [auth, setAuth] = useState<AuthState | null>(optimistic?.auth ?? null);
+  const [session, setSession] = useState<SelectorCreateState | null>(
+    optimistic?.session ?? null
+  );
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const [mode, setMode] = useState<SelectorMode>("single");
-  const [lastMode, setLastMode] = useState<SelectorMode | null>(null);
-  const [history, setHistory] = useState<SelectorHistoryEntry[]>([]);
+  const [mode, setMode] = useState<SelectorMode>(
+    optimistic?.lastMode ?? "single"
+  );
+  const [lastMode, setLastMode] = useState<SelectorMode | null>(
+    optimistic?.lastMode ?? null
+  );
+  const [history, setHistory] = useState<SelectorHistoryEntry[]>(
+    optimistic?.history ?? []
+  );
   const [usage, setUsage] = useState<SelectorCreationUsage | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
@@ -37,15 +56,26 @@ export function usePopupState() {
       setLastMode(lastMode);
       if (lastMode) setMode(lastMode); // preselect it in the chooser too
     } catch {
-      setBootstrapError(
-        "Couldn’t reach Intuned. Check your connection and retry."
-      );
+      // Keep the cached UI on a transient failure; only show the blocking error
+      // screen when there's nothing to render.
+      if (!optimistic) {
+        setBootstrapError(
+          "Couldn’t reach Intuned. Check your connection and retry."
+        );
+      }
     }
-  }, []);
+  }, [optimistic]);
 
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+
+  // Keep the optimistic cache fresh as state settles (bootstrap, sign-out,
+  // session events, feedback). Skipped until auth resolves — nothing to cache yet.
+  useEffect(() => {
+    if (!auth) return;
+    writeCachedSnapshot({ auth, session, history, lastMode });
+  }, [auth, session, history, lastMode]);
 
   // BG-pushed events for live session updates, todO: should we do a long con. model using ports?
   useEffect(() => {

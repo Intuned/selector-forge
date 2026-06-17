@@ -2,7 +2,7 @@
   "name": "selector-extension",
   "description": "Selector Forge — pick an element on a page, get a reliable AI-built selector. Powered by Intuned.",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "packageManager": "yarn@1.22.22",
   "scripts": {

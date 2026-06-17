@@ -8,7 +8,14 @@ import {
   SessionAuthProvider,
 } from "./providers/sessionProvider";
 import { TokenAuthProvider } from "./providers/tokenProvider";
-import { clearMethod, getMethod, setMethod, setToken } from "./storage";
+import {
+  clearMethod,
+  getCachedWorkspaceName,
+  getMethod,
+  setCachedWorkspaceName,
+  setMethod,
+  setToken,
+} from "./storage";
 import {
   AuthRequestError,
   type AuthIdentity,
@@ -59,9 +66,14 @@ async function withWorkspaceName(
   accessToken: string
 ): Promise<AuthIdentity | null> {
   if (!identity?.workspaceId || identity.workspaceName) return identity;
+  // Cached name short-circuits the GraphQL round-trip on every bootstrap.
+  const cached = await getCachedWorkspaceName(identity.workspaceId);
+  if (cached) return { ...identity, workspaceName: cached };
   try {
     const name = await fetchWorkspaceName(accessToken, identity.workspaceId);
-    return name ? { ...identity, workspaceName: name } : identity;
+    if (!name) return identity;
+    await setCachedWorkspaceName(identity.workspaceId, name);
+    return { ...identity, workspaceName: name };
   } catch (error) {
     console.debug("[selector-extension] workspace name lookup failed", error);
     return identity;

@@ -3,6 +3,7 @@ import type { AuthIdentity } from "@/lib/auth";
 import styles from "../ui.module.css";
 import { ChevronDown, SignOutIcon } from "../icons";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { useCachedAvatar } from "../hooks/useCachedAvatar";
 import { displayName, initials } from "../utils";
 
 export function WorkspaceSwitcher({
@@ -15,6 +16,7 @@ export function WorkspaceSwitcher({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const name = displayName(identity);
+  const avatarSrc = useCachedAvatar(identity?.picture);
 
   useClickOutside(ref, open, () => setOpen(false));
 
@@ -28,8 +30,8 @@ export function WorkspaceSwitcher({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        {identity?.picture ? (
-          <img className={styles.avatar} src={identity.picture} alt="" />
+        {avatarSrc ? (
+          <img className={styles.avatar} src={avatarSrc} alt="" />
         ) : (
           <span className={styles.avatar} aria-hidden="true">
             {initials(name)}
