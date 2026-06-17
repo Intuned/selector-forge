@@ -109,6 +109,7 @@ Built on [WXT](https://wxt.dev) with React for the popup.
 - **CLI control** — drive the extension from the Intuned CLI: Intuned IDE support, local agents running end-to-end tests and automations, and exposure through MCP. (Foundational wiring — the `tabs` permission and CDP-driven session start — is already in place.)
 - **Smart picker** — a `multiple` mode that lets you select many elements in one flow and have the extension group them into single items and list-like sets, plus AI field detection that suggests useful fields, names, and selectors for a page automatically.
 - **Drill-down modes** — precision refinement after a pick: walk the XPath/DOM tree to the element you actually meant (child span → button → row → label → parent container), move a list selection to a parent or child level, and add required examples or exclude wrong ones.
+- **Bring your own backend** — today the extension talks to Intuned for authentication and selector generation. We plan to ship a small, self-hostable reference backend that drops into that seam and replaces Intuned entirely — including an open-source agent that generates and judges reliable selectors — so you can run the whole loop on your own infrastructure.
 
 Further out: selector/automation history, export to Playwright or plain JavaScript, automatic pagination detection, and cross-iframe / shadow-DOM support.
 
@@ -118,4 +119,4 @@ Issues and pull requests are welcome. Please run `yarn compile` and `yarn test` 
 
 ## License
 
-[MIT](./LICENSE) © Intuned, Inc.
+[MIT](./LICENSE) © The Metrics Shop, Inc.
