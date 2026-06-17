@@ -10,10 +10,10 @@ export const handleActivatePicker: ContentHandler<
   picker.activatePicker(
     { mode, status, targets },
     {
-      onSubmit: ({ targets, inspectionView }) => {
+      onSubmit: ({ targets, inspectionView, mode }) => {
         void contentMessagingClient.sendMessageToBackground(
           BackgroundMessageType.StartAgent,
-          { sessionId, targets, inspectionView }
+          { sessionId, targets, inspectionView, mode }
         );
       },
       onCancel: () => {

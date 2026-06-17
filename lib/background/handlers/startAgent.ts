@@ -1,10 +1,11 @@
 import { BackgroundMessageType } from "@/lib/messaging";
+import { saveLastMode } from "@/lib/state";
 import type { BackgroundHandler } from "@/lib/background";
 
 export const handleStartAgent: BackgroundHandler<
   BackgroundMessageType.StartAgent
 > = async (
-  { sessionId, targets, inspectionView },
+  { sessionId, targets, inspectionView, mode },
   { state, agentLoopController }
 ) => {
   const current = state.get();
@@ -13,8 +14,14 @@ export const handleStartAgent: BackgroundHandler<
     return;
   }
 
+  // if the commited mode for the picker changed, persist it
+  if (mode !== current.mode) {
+    await saveLastMode(mode);
+  }
+
   state.update((prev) => ({
     ...prev,
+    mode,
     status: "running",
     targets,
     example: {

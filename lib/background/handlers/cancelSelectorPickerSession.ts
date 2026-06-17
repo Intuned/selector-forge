@@ -1,5 +1,4 @@
 import { BackgroundMessageType, ContentMessageType } from "@/lib/messaging";
-import { clearLastMode } from "@/lib/state";
 import type { BackgroundHandler } from "@/lib/background";
 
 export const handleCancelPickerSession: BackgroundHandler<
@@ -17,13 +16,6 @@ export const handleCancelPickerSession: BackgroundHandler<
 
   agentLoopController.cancel();
   state.clear();
-
-  // `lastMode` is a popup-only preference (saved only by the popup start path).
-  // Don't let a programmatic (CLI) cancel reset it — only UI-initiated cancels
-  // should, mirroring who sets it.
-  if (!viaBridge) {
-    await clearLastMode();
-  }
 
   if (tabId != null) {
     try {

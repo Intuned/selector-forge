@@ -12,7 +12,11 @@ import { PickerOverlay } from "./pickerOverlay";
 import { computeXPath } from "./xpath";
 
 export interface ActivatePickerCallbacks {
-  onSubmit: (data: { targets: TargetRecord[]; inspectionView: string }) => void;
+  onSubmit: (data: {
+    targets: TargetRecord[];
+    inspectionView: string;
+    mode: SelectorMode;
+  }) => void;
   onCancel: () => void;
 }
 
@@ -101,7 +105,7 @@ export class PickerSession {
       this.currentRegistry = registry;
 
       const overlay = new PickerOverlay(mode, {
-        onSubmit: (pickedElements) => {
+        onSubmit: (pickedElements, submittedMode) => {
           const tagged = pickedElements.map((el) => ({
             el,
             id: registry.idFor(el),
@@ -111,7 +115,7 @@ export class PickerSession {
             elementXpath: computeXPath(el),
           }));
           const inspectionView = buildInspectionView(tagged);
-          cb.onSubmit({ targets, inspectionView });
+          cb.onSubmit({ targets, inspectionView, mode: submittedMode });
         },
         onCancel: () => cb.onCancel(),
       });

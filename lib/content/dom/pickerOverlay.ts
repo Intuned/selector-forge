@@ -7,8 +7,25 @@ import { predictListMatches } from "./predictListItems";
 // markup because this overlay renders inside a content-script shadow root, not React.
 const FORGE_LOGO_SVG = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" fill="#C8FF2E"/><g fill="#0B0B0B" transform="translate(2 6.3056) scale(0.277778)"><path d="M1.4788e-06 3.31909H18.8934L18.8913 15.1392L13.6938 15.1442C12.6571 15.1447 11.304 15.1821 10.2979 15.0935C7.68967 14.8622 5.24424 13.7268 3.38445 11.8835C0.950513 9.48717 0.0160763 6.66674 1.4788e-06 3.31909Z"/><path d="M65.7514 0.0140934C67.577 0.0231792 69.4024 0.0185198 71.2279 -1.19442e-06C71.2262 1.03916 71.2167 2.09043 71.2284 3.12842C64.0971 3.86367 59.8285 8.2592 58.4106 15.1414C55.9854 15.1342 53.3695 15.1855 50.9627 15.1303C47.5129 15.1971 43.8809 15.1414 40.4106 15.1409L20.5312 15.1381C20.5774 13.3623 20.5473 11.4737 20.5473 9.69067L20.5458 0.00197904C25.8852 0.0629003 31.3093 0.0153747 36.6537 0.0153747L65.7514 0.0140934Z"/><path d="M23.9733 16.8621C24.4506 16.7846 26.3549 16.8231 26.9644 16.8236L33.2499 16.8264L46.1653 16.8248C48.4668 16.8248 51.0709 16.7679 53.3468 16.856C50.9009 18.973 49.2917 21.2583 48.9923 24.5782C48.6619 28.2369 50.7209 32.1197 53.5965 34.3098C51.1311 34.3152 48.465 34.366 46.0148 34.3114C45.8224 34.3264 45.8113 34.3281 45.6213 34.3008C45.5025 34.1776 45.2377 33.4352 45.1056 33.1843C44.157 31.3823 42.5829 30.0796 40.6152 29.515C38.7489 28.986 36.7488 29.2202 35.0552 30.1661C33.4638 31.0551 32.1751 32.5556 31.671 34.3192C29.004 34.2958 26.332 34.337 23.6616 34.3036C29.5647 29.4564 29.9295 21.8731 23.9581 16.9268L23.9733 16.8621Z"/><path d="M15.3425 40.5805V35.991H33.0482C33.0482 32.9674 35.4993 30.5162 38.5229 30.5162C41.5466 30.5162 43.9977 32.9674 43.9977 35.991H61.9363V40.5805H15.3425Z"/></g></svg>`;
 
+// Lucide `target` / `list` marks, inlined as raw markup (the overlay is a
+// shadow-root content script, not React, so the popup's icon components can't
+// be reused). `currentColor` lets the segment's text color drive the stroke.
+const ICON_ATTRS = `viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`;
+const TARGET_SVG = `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`;
+const LIST_SVG = `<svg ${ICON_ATTRS}><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>`;
+
+const MODE_SEGMENTS: {
+  id: SelectorMode;
+  label: string;
+  title: string;
+  svg: string;
+}[] = [
+  { id: "single", label: "Single", title: "Single element", svg: TARGET_SVG },
+  { id: "list", label: "List", title: "List of items", svg: LIST_SVG },
+];
+
 export interface PickerCallbacks {
-  onSubmit?: (picked: Element[]) => void;
+  onSubmit?: (picked: Element[], mode: SelectorMode) => void;
   onCancel?: () => void;
 }
 
@@ -20,6 +37,8 @@ export class PickerOverlay {
   private toolbar: HTMLDivElement;
   private statusEl: HTMLSpanElement;
   private doneBtn: HTMLButtonElement | null = null;
+  private modeToggle: HTMLDivElement | null = null;
+  private modeSegments: Partial<Record<SelectorMode, HTMLButtonElement>> = {};
   private currentHover: Element | null = null;
 
   // non-ui state of the picker
@@ -35,7 +54,7 @@ export class PickerOverlay {
   private dragOffsetY = 0;
 
   constructor(
-    private readonly mode: SelectorMode,
+    private mode: SelectorMode,
     private readonly cb: PickerCallbacks,
     initialSubmitted: boolean = false
   ) {
@@ -71,23 +90,41 @@ export class PickerOverlay {
     logo.innerHTML = FORGE_LOGO_SVG;
     this.toolbar.appendChild(logo);
 
+    // In-place mode switcher
+    this.modeToggle = document.createElement("div");
+    this.modeToggle.className = "mode-toggle";
+    this.modeToggle.setAttribute("role", "group");
+    this.modeToggle.setAttribute("aria-label", "Selector mode");
+    for (const seg of MODE_SEGMENTS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "seg";
+      btn.title = seg.title;
+      btn.innerHTML = `${seg.svg}<span>${seg.label}</span>`;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.setMode(seg.id);
+      });
+      this.modeSegments[seg.id] = btn;
+      this.modeToggle.appendChild(btn);
+    }
+    this.toolbar.appendChild(this.modeToggle);
+
     this.statusEl = document.createElement("span");
     this.statusEl.className = "status";
     this.toolbar.appendChild(this.statusEl);
 
-    if (mode === "list") {
-      this.doneBtn = document.createElement("button");
-      this.doneBtn.className = "done";
-      this.doneBtn.innerHTML = 'Done <span class="kbd">⏎</span>';
-      this.doneBtn.disabled = true;
-      this.doneBtn.title = "Done (Enter)";
-      this.doneBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (this.submitted) return;
-        if (this.picked.length > 0) this.commitSubmit();
-      });
-      this.toolbar.appendChild(this.doneBtn);
-    }
+    this.doneBtn = document.createElement("button");
+    this.doneBtn.className = "done";
+    this.doneBtn.innerHTML = 'Done <span class="kbd">⏎</span>';
+    this.doneBtn.disabled = true;
+    this.doneBtn.title = "Done (Enter)";
+    this.doneBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (this.submitted) return;
+      if (this.picked.length > 0) this.commitSubmit();
+    });
+    this.toolbar.appendChild(this.doneBtn);
 
     const cancelBtn = document.createElement("button");
     cancelBtn.className = "cancel";
@@ -108,7 +145,33 @@ export class PickerOverlay {
     if (initialSubmitted) {
       this.enterSubmittedState();
     } else {
+      this.syncModeUI();
       this.updateStatus();
+    }
+  }
+
+  private setMode(next: SelectorMode): void {
+    if (this.submitted || next === this.mode) return;
+    this.mode = next;
+    this.picked = [];
+    this.predicted = [];
+    this.renderSelected();
+    this.syncModeUI();
+    this.updateStatus();
+  }
+
+  private syncModeUI(): void {
+    for (const seg of MODE_SEGMENTS) {
+      const btn = this.modeSegments[seg.id];
+      if (!btn) continue;
+      const active = seg.id === this.mode;
+      btn.classList.toggle("seg-active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    }
+    if (this.doneBtn) {
+      this.doneBtn.style.display =
+        this.mode === "list" ? "inline-flex" : "none";
+      this.doneBtn.disabled = this.picked.length === 0;
     }
   }
 
@@ -117,6 +180,8 @@ export class PickerOverlay {
     // remove hover & selection ui and disable actions
     this.hoverBox.remove();
     this.selectedLayer.remove();
+    // Mode is locked in once picks are committed.
+    if (this.modeToggle) this.modeToggle.style.display = "none";
     this.statusEl.textContent = "Generating selector…";
     if (this.doneBtn) this.doneBtn.disabled = true;
   }
@@ -239,7 +304,7 @@ export class PickerOverlay {
   /** Fire onSubmit and lock the overlay so further clicks are ignored. */
   private commitSubmit(): void {
     this.enterSubmittedState();
-    this.cb.onSubmit?.(this.picked);
+    this.cb.onSubmit?.(this.picked, this.mode);
   }
 
   /** Pointer-down on the toolbar (background, not a button) starts a drag. */
