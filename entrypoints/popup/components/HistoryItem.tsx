@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SelectorFeedback, SelectorHistoryEntry } from "@/lib/state";
-import { updateSelectorHistoryEntry } from "@/lib/state";
 import { BackgroundMessageType } from "@/lib/messaging";
 import styles from "../ui.module.css";
 import {
@@ -66,27 +65,28 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
     locateTimer.current = setTimeout(() => setLocated("idle"), 1400);
   }, [type, value]);
 
-  // Rate the selector. Clicking the active rating clears it; otherwise it
-  // switches. We update + persist optimistically, then fire the message — a
-  // failed send reverts to the prior rating so the UI never lies about what the
-  // backend recorded. Gated on `entry.langsmithRunId` (older entries lack one).
+  // Rate the selector: clicking the active rating clears it, else switches.
+  // Optimistic UI, then the background persists + forwards the rating; a failed
+  // send reverts so the UI never lies about what was recorded. Gated on
+  // `entry.langsmithRunId` (older entries lack one).
   const rate = useCallback(
     async (next: SelectorFeedback) => {
       if (!entry.langsmithRunId) return;
       const prev = feedback;
       const value = feedback === next ? undefined : next;
       setFeedback(value);
-      void updateSelectorHistoryEntry(entry.id, { feedback: value });
-      if (!value) return; // cleared — nothing to send
       try {
         const { ok } = await messagingClient.sendMessageToBackground(
           BackgroundMessageType.SubmitSelectorFeedback,
-          { langsmithRunId: entry.langsmithRunId, value }
+          {
+            entryId: entry.id,
+            langsmithRunId: entry.langsmithRunId,
+            value: value ?? null,
+          }
         );
         if (!ok) throw new Error("feedback rejected");
       } catch {
         setFeedback(prev);
-        void updateSelectorHistoryEntry(entry.id, { feedback: prev });
       }
     },
     [entry.id, entry.langsmithRunId, feedback]

@@ -4,9 +4,65 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Selector Forge</title>
+    <!--
+      Critical sizing inlined so the popover opens at its final size on the first
+      frame, before the JS bundle and linked stylesheet load. Keep in sync with
+      the html/body/#root rules in ui.module.css.
+    -->
+    <style>
+      html {
+        background: transparent;
+      }
+      body {
+        margin: 0;
+        width: 350px;
+        min-height: 440px;
+        background: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      #root {
+        min-height: 440px;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div
+        aria-hidden="true"
+        style="display: flex; flex-direction: column; min-height: 440px"
+      >
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 12px 14px 11px;
+            border-bottom: 1px solid #ebebee;
+          "
+        >
+          <span
+            style="
+              display: block;
+              width: 16px;
+              height: 16px;
+              border-radius: 3px;
+              background: #c8ff2e;
+            "
+          ></span>
+          <span
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              letter-spacing: -0.01em;
+              color: #0b0b0b;
+            "
+            >Selector Forge</span
+          >
+        </div>
+        <div style="flex: 1"></div>
+      </div>
+    </div>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

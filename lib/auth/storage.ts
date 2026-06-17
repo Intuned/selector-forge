@@ -21,6 +21,8 @@ const KEY = {
   /** Cached bearer exchanged from the API key + its expiry (ms epoch). */
   apiKeyCacheToken: "auth.apiKey.cache.token",
   apiKeyCacheExpiresAt: "auth.apiKey.cache.expiresAt",
+  /** Resolved workspace names keyed by workspace id (`Record<string,string>`). */
+  workspaceNameById: "auth.workspaceNameById",
 } as const;
 
 async function getString(key: string): Promise<string | null> {
@@ -137,4 +139,38 @@ export function clearSessionBearerCache(): Promise<void> {
     KEY.sessionAccessToken,
     KEY.sessionAccessTokenExpiresAt,
   ]);
+}
+
+// --- workspace name cache ---
+
+/**
+ * Workspace names come from a GraphQL lookup (tokens carry only the id), so
+ * caching them by id keeps that lookup off the bootstrap hot path. A cached name
+ * is reused indefinitely, so a rename isn't reflected until this key is cleared —
+ * fine in practice, as renames are rare and a stale display name is harmless.
+ */
+export async function getCachedWorkspaceName(
+  workspaceId: string
+): Promise<string | null> {
+  const out = await browser.storage.local.get(KEY.workspaceNameById);
+  const map = out[KEY.workspaceNameById];
+  if (map && typeof map === "object") {
+    const name = (map as Record<string, unknown>)[workspaceId];
+    if (typeof name === "string") return name;
+  }
+  return null;
+}
+
+export async function setCachedWorkspaceName(
+  workspaceId: string,
+  name: string
+): Promise<void> {
+  const out = await browser.storage.local.get(KEY.workspaceNameById);
+  const existing = out[KEY.workspaceNameById];
+  const map: Record<string, string> =
+    existing && typeof existing === "object"
+      ? (existing as Record<string, string>)
+      : {};
+  map[workspaceId] = name;
+  await browser.storage.local.set({ [KEY.workspaceNameById]: map });
 }
