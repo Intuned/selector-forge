@@ -1,50 +1,122 @@
-# selector-extension
+# Selector Forge
 
-Selector Forge (powered by Intuned) — a standalone browser extension that lets a user pick an element on any page and get back a **reliable** selector (CSS or XPath), generated and judged by Intuned's selector backend.
+> Pick an element on any page, get back a **reliable** selector — generated and judged by AI, then re-verified against the live DOM before you ever see it.
 
-> Status: **scaffold only.** Entry points and module boundaries are in place; features land per the plan.
+Selector Forge is a standalone browser extension (Chrome & Firefox, MV3) that helps you build robust CSS or XPath selectors directly from the pages you're looking at. You point at what you want; the extension and [Intuned](https://intuned.io)'s selector backend do the rest — proposing candidates, testing them against the real page, and discarding anything that doesn't resolve correctly.
+
+It's useful for writing end-to-end tests, building scrapers, and automating any page where a brittle selector would cost you later.
+
+## How it works
+
+1. Open any page and click the extension.
+2. Choose a **selection mode** and pick element(s) directly on the live page.
+3. The extension captures a compact snapshot of your picks (selected targets, DOM context, seed candidates) and sends it to the backend.
+4. The backend proposes and ranks candidate selectors; the extension **tests every candidate against the live DOM** and feeds the results back.
+5. This loop repeats until the backend settles on a winner.
+6. The popup shows only **re-verified** selectors, each with a copy button.
+
+The browser is always the source of truth for what a selector actually matches. The AI proposes and ranks; it never gets the final word on correctness.
+
+### The trust boundary
+
+- The extension holds the selector-creation session state — the source of continuity for the loop.
+- The browser is the source of truth — re-verification is mandatory for every result.
+- The AI proposes and ranks selectors; it does not prove correctness.
+- For lists, verification checks the **full** intended set, so over-matching and under-matching selectors are rejected.
+
+### The agent loop
+
+```
+User pick
+  → Extension builds session state (targets, DOM context, seed candidates, history)
+  → POST the state to the backend
+  → Backend advances one step (generate · judge reliability · decide next work)
+  → Backend returns updated state + next action
+  → Extension runs the requested selector tests against the live DOM
+  → Extension appends results to history and repeats
+  → Backend returns final candidates
+  → Extension re-verifies them against the live DOM
+  → Popup shows only verified selectors
+```
+
+The backend is **stateless**: each request carries the full extension-held state, the backend reconstructs the agent context, advances one step, and hands the state back. This mirrors the familiar `messages`-array pattern — the client carries the conversation and tool results, the server doesn't need a durable session.
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map, the messaging layer, the background/content/popup contexts, and the auth + CLI seams.
+
+## Selection modes
+
+| Mode       | You do                                 | You get                                                                                                |
+| ---------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Single** | Pick one element                       | Verified selector candidates for that exact element — buttons, inputs, links, labels, one-off targets. |
+| **List**   | Pick two examples from a repeating set | A verified container selector for the full set, previewed before you save it.                          |
 
 ## Dev quickstart
 
+Requires Node 18+ and Yarn.
+
 ```bash
-yarn install         # also runs `wxt prepare` (generates .wxt/tsconfig.json)
+yarn install         # also runs `wxt prepare`
 yarn dev             # watch + load .output/chrome-mv3 in Chrome (unpacked)
 yarn dev:firefox     # same for Firefox
 ```
 
-Load the unpacked extension from `.output/chrome-mv3` in `chrome://extensions` after the first `yarn dev` run.
+After the first `yarn dev`, load the unpacked extension from `.output/chrome-mv3` at `chrome://extensions` (enable Developer mode).
 
-## Other commands
+## Commands
 
-| Command | What it does |
-| --- | --- |
-| `yarn compile` | `tsc --noEmit` typecheck |
-| `yarn test` | Vitest (unit + browser projects) |
-| `yarn build` / `yarn build:firefox` | Production extension bundle |
-| `yarn build:e2e` | E2E variant — `<all_urls>` host permission; do not ship |
-| `yarn e2e` | `build:e2e` then Playwright against the packaged extension |
-| `yarn zip` / `yarn zip:firefox` | Store-ready zip |
+| Command                             | What it does                                                        |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `yarn dev` / `yarn dev:firefox`     | Watch build, loadable as an unpacked extension                      |
+| `yarn compile`                      | `tsc --noEmit` typecheck                                            |
+| `yarn test`                         | Vitest — unit + real-Chromium browser projects                      |
+| `yarn build` / `yarn build:firefox` | Production extension bundle                                         |
+| `yarn build:e2e`                    | E2E variant with `<all_urls>` host permission — **never ship this** |
+| `yarn e2e`                          | `build:e2e` then Playwright against the packaged extension          |
+| `yarn zip` / `yarn zip:firefox`     | Store-ready zip                                                     |
+| `yarn icons`                        | Regenerate icon assets                                              |
 
-## Architecture
+### Testing layers
 
-See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the module map, the trust boundary, the agent loop, and the auth + CLI/MCP seams.
+- **Unit** — fast Vitest tests (node/happy-dom) for selector logic, state transforms, storage, and deterministic fallbacks.
+- **Browser** — Vitest browser-mode tests that run selector generation against a real DOM and prove each candidate resolves to exactly the expected element set. This is the correctness oracle. Both layers run under `yarn test`.
+- **E2E** — Playwright against the packaged MV3 extension with a real page, pointer flow, popup, content script, and background worker. Run with `yarn e2e`.
 
-Sub-app instructions for Claude live in [`.claude/CLAUDE.md`](./.claude/CLAUDE.md).
-
-## Layout
+## Project layout
 
 ```
-entrypoints/        WXT entry points (background, picker, popup)
+entrypoints/
+  background.ts     background service worker — session state, agent loop, network I/O
+  content.ts        content script — picker overlay, DOM access, selector testing
+  popup/            React popup — mode controls, results, copy actions
 lib/
-  picker/           DOM-only picker overlay + selection state (CLI/MCP seam)
-  agent/            DOM-only agent loop, element registry, wire protocol (CLI/MCP seam)
-  messaging/        typed runtime-message contract
-  storage/          chrome.storage wrappers
-  auth/             AuthClient interface + stubs (filled in by auth team)
-  results/          popup-side renderer
+  agent/            agent loop controller (backend turn-taking)
+  content/          picker overlay, element registry, DOM inspection
+  background/       handlers, context menu, session wiring, CLI bridge
+  messaging/        typed, direction-partitioned runtime-message protocol
+  state/            session state, history, schema, preferences
+  auth/             auth client + token handling
+  graphql/          workspace + usage queries
+  config.ts         API base + runtime config
 tests/              vitest (unit + browser)
 e2e/                playwright against the built extension
-docs/               architecture notes
+ARCHITECTURE.md     module map, trust boundary, agent loop, seams
 ```
 
-This is a standalone yarn project, not joined to the monorepo workspace — same pattern as `apps/browser-extensions`.
+Built on [WXT](https://wxt.dev) with React for the popup.
+
+## Roadmap
+
+- **CLI control** — drive the extension from the Intuned CLI: Intuned IDE support, local agents running end-to-end tests and automations, and exposure through MCP. (Foundational wiring — the `tabs` permission and CDP-driven session start — is already in place.)
+- **Smart picker** — a `multiple` mode that lets you select many elements in one flow and have the extension group them into single items and list-like sets, plus AI field detection that suggests useful fields, names, and selectors for a page automatically.
+- **Drill-down modes** — precision refinement after a pick: walk the XPath/DOM tree to the element you actually meant (child span → button → row → label → parent container), move a list selection to a parent or child level, and add required examples or exclude wrong ones.
+- **Bring your own backend** — today the extension talks to Intuned for authentication and selector generation. We plan to ship a small, self-hostable reference backend that drops into that seam and replaces Intuned entirely — including an open-source agent that generates and judges reliable selectors — so you can run the whole loop on your own infrastructure.
+
+Further out: selector/automation history, export to Playwright or plain JavaScript, automatic pagination detection, and cross-iframe / shadow-DOM support.
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `yarn compile` and `yarn test` before opening a PR.
+
+## License
+
+[MIT](./LICENSE) © The Metrics Shop, Inc.
