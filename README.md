@@ -74,6 +74,11 @@ After the first `yarn dev`, load the unpacked extension from `.output/chrome-mv3
 | `yarn e2e`                          | `build:e2e` then Playwright against the packaged extension          |
 | `yarn zip` / `yarn zip:firefox`     | Store-ready zip                                                     |
 | `yarn icons`                        | Regenerate icon assets                                              |
+| `yarn ladle`                        | Preview popup components in isolation at `http://localhost:61010`    |
+
+### Component previews (Ladle)
+
+`yarn ladle` serves the popup's React components in isolation for design and review — no extension reload, no real backend. Stories live in [stories/](./stories) (`*.stories.tsx`); Ladle config is in [.ladle/](./.ladle). The popup expects WXT's injected `browser` global, so [.ladle/wxt-globals.ts](./.ladle/wxt-globals.ts) installs a no-op stub for it. `yarn ladle:build` produces a static bundle under `dist/ladle`.
 
 ### Testing layers
 

@@ -518,25 +518,39 @@ button {
 .resultCard {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 11px 12px;
+  gap: 5px;
+  padding: 8px 10px;
   background: #fafafa;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
-.resultCardTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+/* The newest entry — lime tint + a "Latest" pill so the just-generated
+   selector stands out at the top of the list. */
+.resultCardLatest {
+  background: var(--primary-tint);
+  border-color: var(--primary-ring);
 }
 
-.resultIdentity {
+.latestPill {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--primary-fg);
+  background: var(--primary);
+  border-radius: 999px;
+}
+
+/* Top row: type badge + selector text + per-row actions, all on one line. */
+.resultRow {
   display: flex;
   align-items: center;
-  gap: 9px;
-  min-width: 0;
+  gap: 8px;
 }
 
 /* Pill that names the selector type — color-coded so css/xpath read at a
@@ -545,8 +559,8 @@ button {
   display: inline-flex;
   align-items: center;
   flex: none;
-  padding: 2px 8px;
-  font-size: 11px;
+  padding: 1px 7px;
+  font-size: 10.5px;
   font-weight: 600;
   border-radius: 999px;
 }
@@ -558,23 +572,20 @@ button {
   background: var(--primary-tint);
 }
 
-.matchCount {
-  min-width: 0;
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* On the tinted "latest" card the lime badge would blend into the background —
+   switch it to white so it stays legible. */
+.resultCardLatest .typeBadgeXpath,
+.resultCardLatest .typeBadgeCss {
+  background: #fff;
 }
 
-/* Subline under the top row: the site the selector was created on + when. Pulled
-   up against the card's 10px row gap so it reads as a caption of the row above. */
+/* Caption row under the selector: site · time · matches, with the feedback
+   thumbs pushed to the right edge. */
 .resultMeta {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  margin-top: -4px;
   font-size: 11px;
   color: var(--muted-soft);
 }
@@ -589,28 +600,17 @@ button {
   flex: none;
 }
 
-/* Short "generation failed — fallback" line on a fallback card. */
-.failNote {
-  display: flex;
+/* Inline "fallback" marker shown in the caption when generation failed. */
+.failInline {
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  /* Negative bottom margin trims the card's 10px row gap so the message sits
-     closer to the selector row below it. */
-  margin: 0 0 -4px;
-  font-size: 11.5px;
-  line-height: 1.3;
+  gap: 3px;
   color: var(--danger);
   white-space: nowrap;
 }
 
-.failNote svg {
+.failInline svg {
   flex: none;
-}
-
-.resultCardBottom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* Square icon button that highlights the selector on the active page. */
@@ -619,12 +619,12 @@ button {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   color: var(--muted-soft);
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
@@ -651,7 +651,7 @@ button {
 .resultSelector {
   flex: 1;
   min-width: 0;
-  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--fg);
   white-space: nowrap;
   overflow: hidden;
@@ -668,8 +668,8 @@ button {
    wrapping freely instead of cramping the inline row. */
 .resultSelectorPanel {
   display: block;
-  padding: 9px 11px;
-  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 8px 10px;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--fg);
   background: #fff;
   border: 1px solid var(--border);
@@ -684,12 +684,12 @@ button {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   color: var(--muted-soft);
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
@@ -710,17 +710,14 @@ button {
 .copyBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
   flex: none;
-  height: 26px;
-  padding: 0 10px;
-  font-size: 11.5px;
-  font-weight: 500;
-  /* Text shares the button's muted border tone rather than full-contrast fg. */
-  color: var(--muted);
+  width: 24px;
+  height: 24px;
+  color: var(--muted-soft);
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
@@ -763,6 +760,8 @@ button {
 .feedbackActions {
   display: inline-flex;
   gap: 2px;
+  /* Push the thumbs to the right edge of the caption row. */
+  margin-left: auto;
 }
 
 /* Ghost icon buttons: no chrome at rest, only a subtle hover. */
@@ -770,8 +769,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 24px;
+  width: 22px;
+  height: 20px;
   color: var(--muted-soft);
   background: transparent;
   border: none;

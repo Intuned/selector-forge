@@ -44,7 +44,14 @@ function formatWhen(iso: string): { label: string; title: string } {
   return { label: then.toLocaleDateString(), title };
 }
 
-export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
+export function HistoryItem({
+  entry,
+  latest = false,
+}: {
+  entry: SelectorHistoryEntry;
+  /** Highlights the newest entry at the top of the list. */
+  latest?: boolean;
+}) {
   const { type, value } = entry.selector;
   const failed = !entry.langsmithRunId;
   const [copied, setCopied] = useState(false);
@@ -134,22 +141,103 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
   );
 
   return (
-    <div className={styles.resultCard}>
-      <div className={styles.resultCardTop}>
-        <div className={styles.resultIdentity}>
-          <span
-            className={`${styles.typeBadge} ${
-              type === "css" ? styles.typeBadgeCss : styles.typeBadgeXpath
+    <div
+      className={`${styles.resultCard} ${latest ? styles.resultCardLatest : ""}`}
+    >
+      <div className={styles.resultRow}>
+        {latest && <span className={styles.latestPill}>Latest</span>}
+        <span
+          className={`${styles.typeBadge} ${
+            type === "css" ? styles.typeBadgeCss : styles.typeBadgeXpath
+          }`}
+        >
+          {type.toUpperCase()}
+        </span>
+
+        <code
+          ref={codeRef}
+          className={`${styles.resultSelector} ${
+            truncated ? styles.resultSelectorClickable : ""
+          } result-code`}
+          title={value}
+          onClick={truncated ? () => setExpanded((v) => !v) : undefined}
+        >
+          {value}
+        </code>
+
+        <button
+          type="button"
+          className={`${styles.locateBtn} ${
+            located === "found" ? styles.locateBtnFound : ""
+          } ${located === "none" ? styles.locateBtnMiss : ""}`}
+          title={
+            located === "none" ? "Not found on this page" : "Highlight on page"
+          }
+          aria-label="Highlight on page"
+          onClick={locate}
+        >
+          <LocateIcon size={13} />
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ""}`}
+          title={copied ? "Copied" : "Copy selector"}
+          aria-label="Copy selector"
+          onClick={copy}
+        >
+          {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+        </button>
+
+        {truncated && (
+          <button
+            type="button"
+            className={`${styles.expandBtn} ${
+              expanded ? styles.expandBtnOpen : ""
             }`}
+            title={expanded ? "Hide full selector" : "Show full selector"}
+            aria-label={expanded ? "Hide full selector" : "Show full selector"}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
           >
-            {type.toUpperCase()}
+            <ChevronDown size={14} />
+          </button>
+        )}
+      </div>
+
+      <div className={styles.resultMeta}>
+        {host && (
+          <span className={styles.resultHost} title={entry.url}>
+            {host}
           </span>
-          {entry.matchCount !== undefined && (
-            <span className={styles.matchCount}>
-              {matchLabel(entry.matchCount)}
+        )}
+        {host && (
+          <span className={styles.resultMetaDot} aria-hidden="true">
+            ·
+          </span>
+        )}
+        <span title={when.title}>{when.label}</span>
+
+        {!failed && entry.matchCount !== undefined && (
+          <>
+            <span className={styles.resultMetaDot} aria-hidden="true">
+              ·
             </span>
-          )}
-        </div>
+            <span>{matchLabel(entry.matchCount)}</span>
+          </>
+        )}
+
+        {failed && (
+          <>
+            <span className={styles.resultMetaDot} aria-hidden="true">
+              ·
+            </span>
+            <span className={styles.failInline} title="Couldn’t generate — using fallback.">
+              <AlertIcon size={11} />
+              fallback
+            </span>
+          </>
+        )}
 
         {entry.langsmithRunId && (
           <div className={styles.feedbackActions}>
@@ -178,77 +266,6 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
               <ThumbsDownIcon size={14} />
             </button>
           </div>
-        )}
-      </div>
-
-      <div className={styles.resultMeta}>
-        {host && (
-          <span className={styles.resultHost} title={entry.url}>
-            {host}
-          </span>
-        )}
-        {host && (
-          <span className={styles.resultMetaDot} aria-hidden="true">
-            ·
-          </span>
-        )}
-        <span title={when.title}>{when.label}</span>
-      </div>
-
-      {failed && (
-        <p className={styles.failNote}>
-          <AlertIcon size={12} />
-          Couldn’t generate — using fallback.
-        </p>
-      )}
-
-      <div className={styles.resultCardBottom}>
-        <code
-          ref={codeRef}
-          className={`${styles.resultSelector} ${
-            truncated ? styles.resultSelectorClickable : ""
-          } result-code`}
-          title={value}
-          onClick={truncated ? () => setExpanded((v) => !v) : undefined}
-        >
-          {value}
-        </code>
-        <button
-          type="button"
-          className={`${styles.locateBtn} ${
-            located === "found" ? styles.locateBtnFound : ""
-          } ${located === "none" ? styles.locateBtnMiss : ""}`}
-          title={
-            located === "none" ? "Not found on this page" : "Highlight on page"
-          }
-          aria-label="Highlight on page"
-          onClick={locate}
-        >
-          <LocateIcon size={13} />
-        </button>
-        <button
-          type="button"
-          className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ""}`}
-          title={copied ? "Copied" : "Copy selector"}
-          aria-label="Copy selector"
-          onClick={copy}
-        >
-          {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
-          {copied ? "Copied" : "Copy"}
-        </button>
-        {truncated && (
-          <button
-            type="button"
-            className={`${styles.expandBtn} ${
-              expanded ? styles.expandBtnOpen : ""
-            }`}
-            title={expanded ? "Hide full selector" : "Show full selector"}
-            aria-label={expanded ? "Hide full selector" : "Show full selector"}
-            aria-expanded={expanded}
-            onClick={() => setExpanded((v) => !v)}
-          >
-            <ChevronDown size={14} />
-          </button>
         )}
       </div>
 

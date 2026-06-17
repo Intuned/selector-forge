@@ -14,8 +14,9 @@ export function HistoryView({
     <>
       <div className={styles.content}>
         <div className={styles.historyList}>
-          {history.map((entry) => (
-            <HistoryItem key={entry.id} entry={entry} />
+          {history.map((entry, i) => (
+            // History is newest-first, so the first entry is the latest generated.
+            <HistoryItem key={entry.id} entry={entry} latest={i === 0} />
           ))}
         </div>
       </div>
