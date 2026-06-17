@@ -76,6 +76,7 @@ export interface SubmitTargetSelectionRequest {
   sessionId: string;
   targets: TargetRecord[];
   inspectionView: string;
+  mode: SelectorMode;
 }
 
 export interface SubmitBrowserTestResultRequest {

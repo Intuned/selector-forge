@@ -44,6 +44,8 @@ export const handleProcessContextMenuItem: ContentHandler<
         sessionId,
         targets: result.targets,
         inspectionView: result.inspectionView,
+        // The right-click flow only ever targets a single element (guarded above).
+        mode: "single",
       }
     );
   } catch (error) {
