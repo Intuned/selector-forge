@@ -163,10 +163,7 @@ export type BackgroundProtocolMap = {
   [BackgroundMessageType.InitializeAuth]: () => AuthState;
   [BackgroundMessageType.SignIn]: () => void;
   [BackgroundMessageType.SignOut]: () => AuthState;
-  [BackgroundMessageType.SetApiKey]: (data: {
-    apiKey: string;
-    workspaceId: string;
-  }) => AuthState;
+  [BackgroundMessageType.SetApiKey]: (data: { apiKey: string }) => AuthState;
 
   [BackgroundMessageType.GetSelectorCreationUsage]: () => SelectorCreationUsage;
 

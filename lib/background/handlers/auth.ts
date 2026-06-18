@@ -23,4 +23,4 @@ export const handleSignOut: BackgroundHandler<
 
 export const handleSetApiKey: BackgroundHandler<
   BackgroundMessageType.SetApiKey
-> = async ({ apiKey, workspaceId }) => configureApiKey(apiKey, workspaceId);
+> = async ({ apiKey }) => configureApiKey(apiKey);

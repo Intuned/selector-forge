@@ -155,9 +155,10 @@ export async function getApiHeaders(): Promise<
 }
 
 /**
- * Query params REST must append: `workspaceId` for the API-key method (the backend's
- * APIKeyAuthHandler validates the key against it); undefined for the others, whose
- * workspace comes from the bearer claims or the session.
+ * Query params REST must append. No active method currently needs any: the
+ * api-key method's workspace is resolved server-side from the key, and the
+ * other methods carry their workspace in the bearer claims or the session.
+ * Returns undefined unless a provider opts in.
  */
 export async function getApiQueryParams(): Promise<
   Record<string, string> | undefined
@@ -170,11 +171,8 @@ export async function getApiQueryParams(): Promise<
  * Configure API-key auth: validate + store the key (throws on a bad key, leaving
  * the active method unchanged), then make api-key the active method.
  */
-export async function configureApiKey(
-  apiKey: string,
-  workspaceId: string
-): Promise<AuthState> {
-  await setApiKeyCredentials(apiKey, workspaceId);
+export async function configureApiKey(apiKey: string): Promise<AuthState> {
+  await setApiKeyCredentials(apiKey);
   await setMethod("api-key");
   return initAuth();
 }

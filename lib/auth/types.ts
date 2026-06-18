@@ -1,7 +1,7 @@
 /**
  * Auth methods. The active method is stored explicitly (see getMethod in ./storage):
  *   - token   — programmatic ASM JWT, not shown in the UI
- *   - api-key — pasted API key + workspace id
+ *   - api-key — pasted API key (workspace resolved server-side from the key)
  *   - session — browser/cookie login, the default when nothing is configured
  * A configured method (token/api-key) is authoritative and used completely; only
  * an unconfigured state falls back to session. No priority probing.
@@ -109,8 +109,9 @@ export interface AuthProvider {
   getApiHeaders?(): Promise<Record<string, string>>;
 
   /**
-   * Query params REST must append. The api-key method requires `workspaceId` —
-   * the backend's APIKeyAuthHandler validates the key against it. Others omit this.
+   * Query params REST must append. Optional — providers that need none omit it.
+   * (The api-key method appends nothing: the backend resolves the workspace from
+   * the key itself.)
    */
   getApiQueryParams?(): Promise<Record<string, string>>;
 
