@@ -1,0 +1,18 @@
+/*
+ * The popup's `ui.module.css` keeps `:root`, `body`, and `#root` rules global
+ * (CSS Modules don't scope element/id selectors). Those rules size the document
+ * to the 350px extension popup window. Ladle renders stories in its own
+ * document (no iframe), so importing a popup component would otherwise shrink
+ * the whole Ladle shell. Undo the document-level sizing here; stories use the
+ * <PopupFrame> helper to recreate the popup's real footprint.
+ */
+body {
+  width: auto !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+  overflow: auto !important;
+}
+
+#root {
+  min-height: 0 !important;
+}

@@ -13,6 +13,8 @@
     "build:e2e": "wxt build --mode e2e",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "ladle": "ladle serve",
+    "ladle:build": "ladle build",
     "compile": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,6 +23,7 @@
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
+    "@ladle/react": "^5.1.1",
     "@playwright/test": "^1.49.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -31,6 +34,7 @@
     "playwright": "^1.49.0",
     "sharp": "^0.35.1",
     "typescript": "^5.6.0",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.1.0",
     "wxt": "^0.20.0"
   },

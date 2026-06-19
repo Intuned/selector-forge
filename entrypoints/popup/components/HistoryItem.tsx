@@ -5,6 +5,7 @@ import styles from "../ui.module.css";
 import {
   AlertIcon,
   CheckIcon,
+  ChevronDown,
   CopyIcon,
   LocateIcon,
   ThumbsDownIcon,
@@ -14,10 +15,43 @@ import { messagingClient } from "../messagingClient";
 
 function matchLabel(count: number): string {
   if (count === 0) return "No matches";
-  return `${count} ${count === 1 ? "match" : "matches"}`;
+  return `Matches ${count} ${count === 1 ? "element" : "elements"}`;
 }
 
-export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
+// The site the selector was created on, sans a noisy leading `www.`; null when
+// the stored url won't parse.
+function hostFromUrl(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+// Compact relative age ("2h ago"), falling back to an absolute date past a week.
+// `title` carries the full local timestamp so the exact value is available on hover.
+function formatWhen(iso: string): { label: string; title: string } {
+  const then = new Date(iso);
+  const title = then.toLocaleString();
+  const diffSec = Math.round((Date.now() - then.getTime()) / 1000);
+  if (diffSec < 60) return { label: "just now", title };
+  const min = Math.round(diffSec / 60);
+  if (min < 60) return { label: `${min}m ago`, title };
+  const hr = Math.round(min / 60);
+  if (hr < 24) return { label: `${hr}h ago`, title };
+  const day = Math.round(hr / 24);
+  if (day < 7) return { label: `${day}d ago`, title };
+  return { label: then.toLocaleDateString(), title };
+}
+
+export function HistoryItem({
+  entry,
+  latest = false,
+}: {
+  entry: SelectorHistoryEntry;
+  /** Highlights the newest entry at the top of the list. */
+  latest?: boolean;
+}) {
   const { type, value } = entry.selector;
   const failed = !entry.langsmithRunId;
   const [copied, setCopied] = useState(false);
@@ -25,6 +59,9 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
   const [feedback, setFeedback] = useState<SelectorFeedback | undefined>(
     entry.feedback
   );
+  const [expanded, setExpanded] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+  const codeRef = useRef<HTMLElement>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout>>();
   const locateTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(
@@ -34,6 +71,17 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
     },
     []
   );
+
+  // Offer "show full" only when the selector overflows its single line. The
+  // inline row stays truncated even when expanded (the full value shows in the
+  // panel below), so this measurement is stable.
+  useEffect(() => {
+    const el = codeRef.current;
+    if (el) setTruncated(el.scrollWidth > el.clientWidth);
+  }, [value]);
+
+  const host = hostFromUrl(entry.url);
+  const when = formatWhen(entry.createdAt);
 
   const copy = useCallback(async () => {
     try {
@@ -93,22 +141,103 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
   );
 
   return (
-    <div className={styles.resultCard}>
-      <div className={styles.resultCardTop}>
-        <div className={styles.resultIdentity}>
-          <span
-            className={`${styles.typeBadge} ${
-              type === "css" ? styles.typeBadgeCss : styles.typeBadgeXpath
+    <div
+      className={`${styles.resultCard} ${latest ? styles.resultCardLatest : ""}`}
+    >
+      <div className={styles.resultRow}>
+        {latest && <span className={styles.latestPill}>Latest</span>}
+        <span
+          className={`${styles.typeBadge} ${
+            type === "css" ? styles.typeBadgeCss : styles.typeBadgeXpath
+          }`}
+        >
+          {type.toUpperCase()}
+        </span>
+
+        <code
+          ref={codeRef}
+          className={`${styles.resultSelector} ${
+            truncated ? styles.resultSelectorClickable : ""
+          } result-code`}
+          title={value}
+          onClick={truncated ? () => setExpanded((v) => !v) : undefined}
+        >
+          {value}
+        </code>
+
+        <button
+          type="button"
+          className={`${styles.locateBtn} ${
+            located === "found" ? styles.locateBtnFound : ""
+          } ${located === "none" ? styles.locateBtnMiss : ""}`}
+          title={
+            located === "none" ? "Not found on this page" : "Highlight on page"
+          }
+          aria-label="Highlight on page"
+          onClick={locate}
+        >
+          <LocateIcon size={13} />
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ""}`}
+          title={copied ? "Copied" : "Copy selector"}
+          aria-label="Copy selector"
+          onClick={copy}
+        >
+          {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+        </button>
+
+        {truncated && (
+          <button
+            type="button"
+            className={`${styles.expandBtn} ${
+              expanded ? styles.expandBtnOpen : ""
             }`}
+            title={expanded ? "Hide full selector" : "Show full selector"}
+            aria-label={expanded ? "Hide full selector" : "Show full selector"}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
           >
-            {type.toUpperCase()}
+            <ChevronDown size={14} />
+          </button>
+        )}
+      </div>
+
+      <div className={styles.resultMeta}>
+        {host && (
+          <span className={styles.resultHost} title={entry.url}>
+            {host}
           </span>
-          {entry.matchCount !== undefined && (
-            <span className={styles.matchCount}>
-              {matchLabel(entry.matchCount)}
+        )}
+        {host && (
+          <span className={styles.resultMetaDot} aria-hidden="true">
+            ·
+          </span>
+        )}
+        <span title={when.title}>{when.label}</span>
+
+        {!failed && entry.matchCount !== undefined && (
+          <>
+            <span className={styles.resultMetaDot} aria-hidden="true">
+              ·
             </span>
-          )}
-        </div>
+            <span>{matchLabel(entry.matchCount)}</span>
+          </>
+        )}
+
+        {failed && (
+          <>
+            <span className={styles.resultMetaDot} aria-hidden="true">
+              ·
+            </span>
+            <span className={styles.failInline} title="Couldn’t generate — using fallback.">
+              <AlertIcon size={11} />
+              fallback
+            </span>
+          </>
+        )}
 
         {entry.langsmithRunId && (
           <div className={styles.feedbackActions}>
@@ -140,41 +269,9 @@ export function HistoryItem({ entry }: { entry: SelectorHistoryEntry }) {
         )}
       </div>
 
-      {failed && (
-        <p className={styles.failNote}>
-          <AlertIcon size={12} />
-          Couldn’t generate — using fallback.
-        </p>
+      {truncated && expanded && (
+        <code className={styles.resultSelectorPanel}>{value}</code>
       )}
-
-      <div className={styles.resultCardBottom}>
-        <code className={`${styles.resultSelector} result-code`} title={value}>
-          {value}
-        </code>
-        <button
-          type="button"
-          className={`${styles.locateBtn} ${
-            located === "found" ? styles.locateBtnFound : ""
-          } ${located === "none" ? styles.locateBtnMiss : ""}`}
-          title={
-            located === "none" ? "Not found on this page" : "Highlight on page"
-          }
-          aria-label="Highlight on page"
-          onClick={locate}
-        >
-          <LocateIcon size={13} />
-        </button>
-        <button
-          type="button"
-          className={`${styles.copyBtn} ${copied ? styles.copyBtnDone : ""}`}
-          title={copied ? "Copied" : "Copy selector"}
-          aria-label="Copy selector"
-          onClick={copy}
-        >
-          {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
     </div>
   );
 }

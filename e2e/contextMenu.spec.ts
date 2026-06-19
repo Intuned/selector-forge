@@ -176,7 +176,7 @@ test.describe("page right-click flow", () => {
     // Overlay is mounted in the generating state. (Playwright locators pierce
     // the overlay's open shadow root.)
     await expect(page.locator("[data-intuned-picker]")).toBeAttached();
-    await expect(page.getByText(/Generating selector/)).toBeVisible();
+    await expect(page.getByText(/Generating/)).toBeVisible();
 
     // Once the backend settles (~1.5s), the overlay is torn down. (The settled
     // result in the popup is covered by the happy-path test above.)

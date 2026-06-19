@@ -30,3 +30,8 @@ export async function getSettingsUrl(): Promise<string> {
   const apiBase = await getApiBase();
   return `${apiBase}/settings/workspace`;
 }
+
+export async function getApiKeysUrl(): Promise<string> {
+  const apiBase = await getApiBase();
+  return `${apiBase}/settings/api-keys`;
+}
