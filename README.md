@@ -6,6 +6,11 @@ Selector Forge is a standalone browser extension (Chrome & Firefox, MV3) that he
 
 It's useful for writing end-to-end tests, building scrapers, and automating any page where a brittle selector would cost you later.
 
+## Install
+
+- **Chrome** — [Chrome Web Store](https://chromewebstore.google.com/detail/selector-forge-ai-selecto/lbendfnlmhdakbeblajoffkfmafbfaha)
+- **Firefox** — [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/selector-forge/)
+
 ## How it works
 
 1. Open any page and click the extension.
@@ -23,23 +28,6 @@ The browser is always the source of truth for what a selector actually matches. 
 - The browser is the source of truth — re-verification is mandatory for every result.
 - The AI proposes and ranks selectors; it does not prove correctness.
 - For lists, verification checks the **full** intended set, so over-matching and under-matching selectors are rejected.
-
-### The agent loop
-
-```
-User pick
-  → Extension builds session state (targets, DOM context, seed candidates, history)
-  → POST the state to the backend
-  → Backend advances one step (generate · judge reliability · decide next work)
-  → Backend returns updated state + next action
-  → Extension runs the requested selector tests against the live DOM
-  → Extension appends results to history and repeats
-  → Backend returns final candidates
-  → Extension re-verifies them against the live DOM
-  → Popup shows only verified selectors
-```
-
-The backend is **stateless**: each request carries the full extension-held state, the backend reconstructs the agent context, advances one step, and hands the state back. This mirrors the familiar `messages`-array pattern — the client carries the conversation and tool results, the server doesn't need a durable session.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map, the messaging layer, the background/content/popup contexts, and the auth + CLI seams.
 
