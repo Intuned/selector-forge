@@ -99,7 +99,7 @@ Built on [WXT](https://wxt.dev) with React for the popup.
 - **Drill-down modes** — precision refinement after a pick: walk the XPath/DOM tree to the element you actually meant (child span → button → row → label → parent container), move a list selection to a parent or child level, and add required examples or exclude wrong ones.
 - **Bring your own backend** — today the extension talks to Intuned for authentication and selector generation. We plan to ship a small, self-hostable reference backend that drops into that seam and replaces Intuned entirely — including an open-source agent that generates and judges reliable selectors — so you can run the whole loop on your own infrastructure.
 
-Further out: selector/automation history, export to Playwright or plain JavaScript, and automatic pagination detection.
+Further out: selector/automation history, export to Playwright or plain JavaScript, automatic pagination detection, and cross-iframe / shadow-DOM support.
 
 ## Contributing
 
