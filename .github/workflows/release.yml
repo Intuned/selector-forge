@@ -1,0 +1,73 @@
+name: Release
+
+# Builds and zips the Chrome extension (`wxt zip`), publishes the zip as a
+# workflow artifact, and attaches it to a GitHub release.
+#
+# Trigger by pushing a version tag (e.g. `git tag v0.0.2 && git push origin v0.0.2`),
+# or run manually via the Actions tab — a manual run tags the current commit as
+# `v<version-from-package.json>`.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to create the release and tag
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable # activates the pinned yarn@1.22.22 from package.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.0
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build & zip extension (Chrome + Firefox)
+        run: |
+          yarn zip          # -> .output/<name>-<version>-chrome.zip
+          yarn zip:firefox  # -> .output/<name>-<version>-firefox.zip + ...-sources.zip (AMO review)
+
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v${VERSION}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag=$TAG version=$VERSION"
+          echo "Zip(s) produced:"
+          ls -la .output/*.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: selector-forge-${{ steps.meta.outputs.version }}
+          path: .output/*.zip
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Selector Forge ${{ steps.meta.outputs.tag }}
+          files: .output/*.zip
+          generate_release_notes: true
+          prerelease: ${{ contains(steps.meta.outputs.tag, '-') }}
+          fail_on_unmatched_files: true
