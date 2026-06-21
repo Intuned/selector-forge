@@ -13,20 +13,38 @@ import {
 } from "@/lib/background/contextMenu";
 import { createBackgroundMessagingClient } from "@/lib/messaging";
 import { SelectorState } from "@/lib/state";
+import { BackgroundTelemetryClient } from "@/lib/telemetry/client";
+import { setTelemetrySink } from "@/lib/telemetry/api";
+import { reportGlobalErrors } from "@/lib/telemetry/globalErrors";
 
 export default defineBackground(() => {
   const state = new SelectorState();
   const messaging = createBackgroundMessagingClient();
+
+  // Single App Insights egress for the whole extension. Registered as the api.ts
+  // sink so background-originated trackEvent/trackException (registerHandlers,
+  // fetchIntunedApi, …) route here; content/popup forward over messaging. init()
+  // is async — calls before it resolves are safe no-ops.
+  const telemetry = new BackgroundTelemetryClient();
+  setTelemetrySink(telemetry);
+  void telemetry.init();
+
   const agentLoopController = new AgentLoopController({
     state,
     backgroundMessagingClient: messaging,
+    telemetry,
   });
 
   const context: BackgroundContext = {
     state,
     agentLoopController,
     backgroundMessagingClient: messaging,
+    telemetry,
   };
+
+  // Global safety net. This runs at the top of every worker cold start, so any
+  // otherwise-unobserved error/rejection in the worker is captured.
+  reportGlobalErrors(self);
 
   void state.hydrate();
 

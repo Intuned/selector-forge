@@ -7,6 +7,7 @@ import {
 } from "@/lib/messaging";
 import { appendSelectorHistory } from "@/lib/state";
 import { generalizeArrayXpath } from "@/lib/content/dom/arrayXpath";
+import type { BackgroundTelemetry } from "@/lib/telemetry";
 import type {
   BrowserResultRecord,
   FinalSelectorResult,
@@ -21,6 +22,7 @@ import type {
 export interface AgentLoopDeps {
   state: SelectorState;
   backgroundMessagingClient: BackgroundMessagingClient;
+  telemetry: BackgroundTelemetry;
 }
 
 const MAX_BACKEND_STEPS = 20;
@@ -66,11 +68,17 @@ export class AgentLoopController {
 
     this.status = "running";
     let steps = 0;
+    const startedAt = Date.now();
     try {
       while (true) {
         if (signal.aborted) return;
 
         if (steps >= MAX_BACKEND_STEPS) {
+          this.deps.telemetry.trackEvent({
+            name: "agentLoop.maxStepsExceeded",
+            measurements: { steps },
+            operationId: sessionId,
+          });
           await this.settle(sessionId, {
             status: "error",
             note: `Exceeded max backend steps (${MAX_BACKEND_STEPS}).`,
@@ -148,12 +156,28 @@ export class AgentLoopController {
         return;
       }
       console.error("[selector-extension] AgentLoop error", error);
+      this.deps.telemetry.trackException({
+        error,
+        operationId: sessionId,
+        properties: { context: "agentLoop" },
+      });
       await this.settle(sessionId, {
         status: "error",
         note: error instanceof Error ? error.message : "Unknown loop error",
       });
     } finally {
       this.abortController = null;
+      this.deps.telemetry.trackEvent({
+        name: "agentLoop.completed",
+        properties: {
+          outcome: signal.aborted
+            ? "aborted"
+            : this.deps.state.get()?.status ?? "unknown",
+          mode: this.deps.state.get()?.mode ?? "unknown",
+        },
+        measurements: { durationMs: Date.now() - startedAt, steps },
+        operationId: sessionId,
+      });
     }
   }
 

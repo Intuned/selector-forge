@@ -15,6 +15,12 @@ import type {
 import { SelectorState } from "../../../lib/state";
 import type { PageContext, SelectorCreateState } from "../../../lib/state";
 import type { GetDataType, GetReturnType } from "@webext-core/messaging";
+import type {
+  BackgroundTelemetry,
+  TelemetryRole,
+  TrackEventInput,
+  TrackExceptionInput,
+} from "../../../lib/telemetry/types";
 
 // harness for testing background handlers in isolation, with fakes for the messaging client and agent loop controller, and some state fixtures.
 
@@ -87,6 +93,37 @@ export function createFakeMessagingClient(): FakeMessagingClient {
   };
 }
 
+// ─── telemetry fake ──────────────────────────────────────────────────────────
+
+export interface RecordedEvent {
+  input: TrackEventInput;
+  role?: TelemetryRole;
+}
+export interface RecordedException {
+  input: TrackExceptionInput;
+  role?: TelemetryRole;
+}
+
+export interface FakeTelemetry extends BackgroundTelemetry {
+  events: RecordedEvent[];
+  exceptions: RecordedException[];
+}
+
+export function createFakeTelemetry(): FakeTelemetry {
+  const events: RecordedEvent[] = [];
+  const exceptions: RecordedException[] = [];
+  return {
+    events,
+    exceptions,
+    trackEvent(input, role) {
+      events.push({ input, role });
+    },
+    trackException(input, role) {
+      exceptions.push({ input, role });
+    },
+  };
+}
+
 // ─── agent-loop fake (for handler tests; the real one has its own tests) ─────
 
 export interface FakeAgentLoopController extends AgentLoopController {
@@ -120,12 +157,14 @@ export interface HarnessOptions {
   messaging?: FakeMessagingClient;
   agentLoop?: AgentLoopController;
   sender?: MessageSender;
+  telemetry?: FakeTelemetry;
 }
 
 export interface Harness {
   state: SelectorState;
   messaging: FakeMessagingClient;
   agentLoop: FakeAgentLoopController;
+  telemetry: FakeTelemetry;
   context: BackgroundHandlerContext;
 }
 
@@ -134,16 +173,18 @@ export function createHarness(opts: HarnessOptions = {}): Harness {
   const messaging = opts.messaging ?? createFakeMessagingClient();
   const agentLoop = (opts.agentLoop ??
     createFakeAgentLoopController()) as FakeAgentLoopController;
+  const telemetry = opts.telemetry ?? createFakeTelemetry();
   const baseContext: BackgroundContext = {
     state,
     agentLoopController: agentLoop,
     backgroundMessagingClient: messaging,
+    telemetry,
   };
   const context: BackgroundHandlerContext = {
     ...baseContext,
     sender: opts.sender as MessageSender,
   };
-  return { state, messaging, agentLoop, context };
+  return { state, messaging, agentLoop, telemetry, context };
 }
 
 // ─── state fixtures ──────────────────────────────────────────────────────────

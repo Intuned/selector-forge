@@ -33,6 +33,15 @@ export type BackgroundHandlers = {
   [K in BackgroundMessageType]: BackgroundHandler<K>;
 };
 
+/**
+ * Telemetry-forwarding messages are excluded from command instrumentation —
+ * tracking them would emit telemetry about telemetry (and recurse on failure).
+ */
+const TELEMETRY_MESSAGE_TYPES: ReadonlySet<BackgroundMessageType> = new Set([
+  BackgroundMessageType.TrackTelemetryEvent,
+  BackgroundMessageType.TrackTelemetryException,
+]);
+
 export function registerBackgroundHandlers(
   handlers: BackgroundHandlers,
   ctx: BackgroundContext
@@ -45,10 +54,32 @@ export function registerBackgroundHandlers(
   for (const key of Object.values(BackgroundMessageType)) {
     register(key, async (message) => {
       await ctx.state.ready;
-      return handlers[key](message.data as never, {
-        ...ctx,
-        sender: message.sender,
-      });
+      const handlerCtx = { ...ctx, sender: message.sender };
+      const data = message.data as never;
+
+      if (TELEMETRY_MESSAGE_TYPES.has(key)) {
+        return handlers[key](data, handlerCtx);
+      }
+
+      // One choke point instruments every command: duration + success event,
+      // or an exception (then re-thrown so behavior is unchanged).
+      const startedAt = Date.now();
+      try {
+        const result = await handlers[key](data, handlerCtx);
+        ctx.telemetry.trackEvent({
+          name: `command.${key}`,
+          measurements: { durationMs: Date.now() - startedAt },
+          operationId: ctx.state.get()?.sessionId,
+        });
+        return result;
+      } catch (error) {
+        ctx.telemetry.trackException({
+          error,
+          properties: { command: key },
+          operationId: ctx.state.get()?.sessionId,
+        });
+        throw error;
+      }
     });
   }
 }

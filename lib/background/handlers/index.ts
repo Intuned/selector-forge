@@ -17,6 +17,10 @@ import { handleStartPickerSessionForTab } from "./startPickerSessionForTab";
 import { handleGetSessionState } from "./getSessionState";
 import { handleHighlightSelector } from "./highlightSelector";
 import { handleSubmitSelectorFeedback } from "./submitSelectorFeedback";
+import {
+  handleTrackTelemetryEvent,
+  handleTrackTelemetryException,
+} from "./telemetry";
 
 export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.BootstrapPopup]: handleBootstrapPopup,
@@ -33,4 +37,6 @@ export const backgroundHandlers: BackgroundHandlers = {
   [BackgroundMessageType.SubmitSelectorFeedback]: handleSubmitSelectorFeedback,
   [BackgroundMessageType.StartPickerSessionForTab]: handleStartPickerSessionForTab,
   [BackgroundMessageType.GetSessionState]: handleGetSessionState,
+  [BackgroundMessageType.TrackTelemetryEvent]: handleTrackTelemetryEvent,
+  [BackgroundMessageType.TrackTelemetryException]: handleTrackTelemetryException,
 };

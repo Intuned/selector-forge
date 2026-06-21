@@ -13,6 +13,11 @@ import type {
 } from "@/lib/state";
 import type { AuthState } from "@/lib/auth";
 import type { SelectorCreationUsage } from "@/lib/graphql/usage";
+import type {
+  ForwardableRole,
+  TelemetrySeverity,
+  TrackEventInput,
+} from "@/lib/telemetry/types";
 
 /* ──────────────────────────── enums ──────────────────────────────────── */
 
@@ -45,6 +50,11 @@ export enum BackgroundMessageType {
   // programmatic surface (CLI bridge over CDP, see lib/background/bridge.ts)
   StartPickerSessionForTab = "bg:startPickerSessionForTab",
   GetSessionState = "bg:getSessionState",
+
+  // telemetry: content/popup forward items to the background, the single
+  // App Insights egress (see lib/telemetry). Fire-and-forget.
+  TrackTelemetryEvent = "bg:trackTelemetryEvent",
+  TrackTelemetryException = "bg:trackTelemetryException",
 }
 
 // messages addressed to content scripts (from background)
@@ -132,6 +142,28 @@ export interface StartPickerSessionForTabResponse {
   page: PageContext;
 }
 
+/** A telemetry event forwarded from content/popup to the background egress. */
+export type TrackTelemetryEventRequest = TrackEventInput & {
+  role: ForwardableRole;
+};
+
+/**
+ * A telemetry exception forwarded from content/popup. The Error is flattened to
+ * `{name, message, stack}` because Errors don't survive structuredClone; the
+ * background rebuilds it before sending to App Insights. (This is why it can't
+ * just extend TrackExceptionInput, whose `error` is a live value.)
+ */
+export interface TrackTelemetryExceptionRequest {
+  role: ForwardableRole;
+  name: string;
+  message: string;
+  stack?: string;
+  severity?: TelemetrySeverity;
+  properties?: Record<string, string>;
+  measurements?: Record<string, number>;
+  operationId?: string;
+}
+
 export type BackgroundProtocolMap = {
   [BackgroundMessageType.BootstrapPopup]: () => BootstrapPopupResponse;
 
@@ -175,6 +207,13 @@ export type BackgroundProtocolMap = {
     data: StartPickerSessionForTabRequest
   ) => StartPickerSessionForTabResponse;
   [BackgroundMessageType.GetSessionState]: () => SelectorCreateState | null;
+
+  [BackgroundMessageType.TrackTelemetryEvent]: (
+    data: TrackTelemetryEventRequest
+  ) => void;
+  [BackgroundMessageType.TrackTelemetryException]: (
+    data: TrackTelemetryExceptionRequest
+  ) => void;
 };
 
 /* ───────────────────── content protocol map ──────────────────────────── */
