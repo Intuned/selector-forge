@@ -11,7 +11,9 @@ import type {
 } from "../../../lib/state";
 import {
   createFakeMessagingClient,
+  createFakeTelemetry,
   type FakeMessagingClient,
+  type FakeTelemetry,
   makeInflightSession,
   silenceConsole,
 } from "../background/harness";
@@ -145,6 +147,7 @@ function testSelectorsTurn(
 interface LoopFixture {
   state: SelectorState;
   messaging: FakeMessagingClient;
+  telemetry: FakeTelemetry;
   controller: AgentLoopController;
   sessionId: string;
   tabId: number;
@@ -157,13 +160,16 @@ function setupLoop(opts: { withTab?: boolean } = {}): LoopFixture {
   if (opts.withTab !== false) state.setMeta({ tabId: 42 });
 
   const messaging = createFakeMessagingClient();
+  const telemetry = createFakeTelemetry();
   const controller = new AgentLoopController({
     state,
     backgroundMessagingClient: messaging,
+    telemetry,
   });
   return {
     state,
     messaging,
+    telemetry,
     controller,
     sessionId: session.sessionId,
     tabId: 42,
@@ -188,7 +194,8 @@ describe("AgentLoopController", () => {
 
   describe("happy path", () => {
     it("done in one turn → settle dispatches DeactivatePicker + SelectorGenerationSettled, status returns to idle", async () => {
-      const { state, messaging, controller, sessionId, tabId } = setupLoop();
+      const { state, messaging, telemetry, controller, sessionId, tabId } =
+        setupLoop();
       scriptFetch([doneOk(state.get()!)]);
       messaging.whenContent(ContentMessageType.HighlightSelector, () => ({
         matchCount: 1,
@@ -198,6 +205,14 @@ describe("AgentLoopController", () => {
 
       // State reflects the final response.
       expect(state.get()?.status).toBe("done");
+
+      // Telemetry: a completion event with the outcome + step count.
+      const completed = telemetry.events.find(
+        (e) => e.input.name === "agentLoop.completed"
+      );
+      expect(completed).toBeDefined();
+      expect(completed?.input.properties?.outcome).toBe("done");
+      expect(completed?.input.measurements?.steps).toBe(1);
       expect(state.get()?.finalResult).toEqual({
         status: "ok",
         bestSelector: { type: "css", value: "#picked" },

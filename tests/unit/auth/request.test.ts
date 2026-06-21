@@ -19,6 +19,19 @@ vi.mock("@/lib/auth/manager", () => ({
   getApiQueryParams: getApiQueryParamsMock,
 }));
 
+// Telemetry is fire-and-forget; mock the public surface to capture the events
+// `fetchIntunedApi` emits without standing up a real sink. (scrub.ts stays real
+// so we exercise the actual host/path scrubbing.)
+const { trackEventMock, trackExceptionMock } = vi.hoisted(() => ({
+  trackEventMock: vi.fn(),
+  trackExceptionMock: vi.fn(),
+}));
+
+vi.mock("@/lib/telemetry/api", () => ({
+  trackEvent: trackEventMock,
+  trackException: trackExceptionMock,
+}));
+
 const URL_BASE = "https://app.intuned.io/api/selectors/create";
 
 function stubFetch(): ReturnType<typeof vi.fn> {
@@ -31,6 +44,8 @@ describe("fetchIntunedApi", () => {
   beforeEach(() => {
     getApiHeadersMock.mockReset().mockResolvedValue(undefined);
     getApiQueryParamsMock.mockReset().mockResolvedValue(undefined);
+    trackEventMock.mockReset();
+    trackExceptionMock.mockReset();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -92,5 +107,80 @@ describe("fetchIntunedApi", () => {
 
     await expect(fetchIntunedApi(URL_BASE)).rejects.toThrow("Not signed in");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("emits an api.request event with host + path only, never the query string", async () => {
+    getApiHeadersMock.mockResolvedValue({ "x-api-key": "in1_key" });
+    getApiQueryParamsMock.mockResolvedValue({ workspaceId: "ws-secret" });
+    stubFetch();
+
+    await fetchIntunedApi(URL_BASE);
+
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    const input = trackEventMock.mock.calls[0][0];
+    expect(input.name).toBe("api.request");
+    expect(input.properties).toMatchObject({
+      host: "app.intuned.io",
+      pathname: "/api/selectors/create",
+      method: "GET",
+      ok: "true",
+      statusCode: "200",
+    });
+    // The workspace id rides in the query string; it must never be reported.
+    expect(JSON.stringify(input)).not.toContain("ws-secret");
+    expect(typeof input.measurements.durationMs).toBe("number");
+    expect(trackExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it("reports a network failure as an exception (not a success event) and rethrows", async () => {
+    const failure = new TypeError("Failed to fetch");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw failure;
+      })
+    );
+
+    await expect(fetchIntunedApi(URL_BASE)).rejects.toThrow("Failed to fetch");
+
+    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(trackExceptionMock).toHaveBeenCalledTimes(1);
+    const input = trackExceptionMock.mock.calls[0][0];
+    expect(input.error).toBe(failure);
+    expect(input.properties).toMatchObject({
+      host: "app.intuned.io",
+      pathname: "/api/selectors/create",
+      context: "api.request",
+    });
+  });
+
+  it("skips exception telemetry for a user-initiated abort (pre-aborted signal)", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new DOMException("Aborted", "AbortError");
+      })
+    );
+
+    await expect(
+      fetchIntunedApi(URL_BASE, { signal: controller.signal })
+    ).rejects.toThrow();
+
+    expect(trackExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it("skips exception telemetry when fetch throws an AbortError without a signal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new DOMException("Aborted", "AbortError");
+      })
+    );
+
+    await expect(fetchIntunedApi(URL_BASE)).rejects.toThrow();
+
+    expect(trackExceptionMock).not.toHaveBeenCalled();
   });
 });

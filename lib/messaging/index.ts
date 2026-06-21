@@ -28,6 +28,8 @@ export {
   type SubmitSelectorFeedbackResult,
   type SubmitTargetSelectionRequest,
   type TestSelectorsRequest,
+  type TrackTelemetryEventRequest,
+  type TrackTelemetryExceptionRequest,
 } from "./protocol";
 export {
   createBackgroundMessagingClient,

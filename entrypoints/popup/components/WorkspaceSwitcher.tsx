@@ -5,6 +5,7 @@ import { ChevronDown, SignOutIcon } from "../icons";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useCachedAvatar } from "../hooks/useCachedAvatar";
 import { displayName, initials } from "../utils";
+import { TelemetryToggle } from "./TelemetryToggle";
 
 export function WorkspaceSwitcher({
   identity,
@@ -48,6 +49,7 @@ export function WorkspaceSwitcher({
           <div className={styles.menuIdentity}>
             <span className={styles.menuName}>{name}</span>
           </div>
+          <TelemetryToggle />
           <button
             id="sign-out"
             type="button"

@@ -2,6 +2,7 @@ import type { ExtensionMessage } from "@webext-core/messaging";
 import type { AgentLoopController } from "@/lib/agent";
 import type { BackgroundMessagingClient } from "@/lib/messaging";
 import type { SelectorState } from "@/lib/state";
+import type { BackgroundTelemetry } from "@/lib/telemetry";
 
 export type MessageSender = ExtensionMessage["sender"];
 
@@ -10,6 +11,8 @@ export interface BackgroundContext {
   state: SelectorState;
   agentLoopController: AgentLoopController;
   backgroundMessagingClient: BackgroundMessagingClient;
+  /** Single App Insights egress; content/popup forward items here. */
+  telemetry: BackgroundTelemetry;
 }
 
 /**

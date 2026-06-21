@@ -74,6 +74,29 @@ After the first `yarn dev`, load the unpacked extension from `.output/chrome-mv3
 - **Browser** — Vitest browser-mode tests that run selector generation against a real DOM and prove each candidate resolves to exactly the expected element set. This is the correctness oracle. Both layers run under `yarn test`.
 - **E2E** — Playwright against the packaged MV3 extension with a real page, pointer flow, popup, content script, and background worker. Run with `yarn e2e`.
 
+## Telemetry
+
+The extension reports anonymous diagnostics to Azure Application Insights so we can
+spot errors and usage issues in the wild. It is **anonymous** (a random per-install
+id — never your email, workspace name, browsed-page URLs, or selector strings) and can
+be turned off from the workspace menu in the popup ("Share anonymous usage data").
+
+What's collected: exceptions/unhandled rejections, command events with timing,
+agent-loop outcomes, and Intuned API request host, path, status, and latency — never
+the query string (it carries your workspace id). See [lib/telemetry/](./lib/telemetry).
+
+The background service worker is the single egress; content and popup forward items
+to it over the message protocol. Because an MV3 worker has no DOM and is short-lived,
+the SDK pipeline is built from `@microsoft/applicationinsights-core-js` +
+`-channel-js` directly (fetch transport, in-memory buffer) — not the Web SDK.
+
+The Azure connection string is hard-coded in [lib/config.ts](./lib/config.ts)
+(`HARDCODED_CONNECTION_STRING`); the write-only ingestion key is safe to embed in the
+published bundle. Because it is always present, dev builds report too — while developing,
+either use the in-popup opt-out or point telemetry at a throwaway resource by setting the
+`config.appInsightsConnectionString` key in `browser.storage.local` (an empty value falls
+back to the hard-coded string; clearing it restores the default).
+
 ## Project layout
 
 ```
