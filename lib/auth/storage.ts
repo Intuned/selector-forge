@@ -13,7 +13,7 @@ const KEY = {
   token: "auth.token",
   /** Pasted API key. */
   apiKey: "auth.apiKey",
-  /** Workspace id paired with the API key. */
+  /** Legacy: workspace id formerly paired with the API key; wiped on clear. */
   workspaceId: "auth.workspaceId",
   /** Cached session bearer + its expiry (ms epoch). */
   sessionAccessToken: "auth.accessToken",
@@ -78,12 +78,8 @@ export function getApiKey(): Promise<string | null> {
   return getString(KEY.apiKey);
 }
 
-export function getWorkspaceId(): Promise<string | null> {
-  return getString(KEY.workspaceId);
-}
-
-export function setApiKey(apiKey: string, workspaceId: string): Promise<void> {
-  return browser.storage.local.set({ [KEY.apiKey]: apiKey, [KEY.workspaceId]: workspaceId });
+export function setApiKey(apiKey: string): Promise<void> {
+  return browser.storage.local.set({ [KEY.apiKey]: apiKey });
 }
 
 export function clearApiKey(): Promise<void> {

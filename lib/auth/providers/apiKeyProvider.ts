@@ -4,7 +4,6 @@ import {
   clearApiKey,
   getApiKey,
   getApiKeyBearerCache,
-  getWorkspaceId,
   setApiKey,
   setApiKeyBearerCache,
 } from "../storage";
@@ -17,26 +16,24 @@ import {
 
 /**
  * API-key auth (mirrors the CLI's ApiKeyAuthProvider). The key is exchanged for a
- * short-lived JWT at `GET {apiBase}/api/v1/workspace/{workspaceId}/auth`
- * (`x-api-key` header) and cached. REST uses the key directly; Bearer flows use
- * the JWT.
+ * short-lived JWT at `GET {apiBase}/api/v1/auth` (`x-api-key` header) and cached.
+ * The backend resolves the owning workspace from the key, so no workspace id is
+ * collected — it is read back from the JWT claims. REST uses the key directly;
+ * Bearer flows use the JWT.
  */
 
 const DEFAULT_TOKEN_TTL_MS = 3 * 60 * 1000;
 const REFRESH_BEFORE_EXPIRY_MS = 30 * 1000;
 
 /**
- * Exchange an API key for a JWT. Throws with a status on 401/400 (and on a 2xx
- * that returns an unreadable or already-expired token), without one on network errors.
+ * Exchange an API key for a JWT. Throws with a status on 401 (and on a 2xx that
+ * returns an unreadable or already-expired token), without one on network errors.
  */
-async function exchangeApiKey(
-  apiKey: string,
-  workspaceId: string
-): Promise<string> {
+async function exchangeApiKey(apiKey: string): Promise<string> {
   let response: Response;
   try {
     const apiBase = await getApiBase();
-    response = await fetch(`${apiBase}/api/v1/workspace/${workspaceId}/auth`, {
+    response = await fetch(`${apiBase}/api/v1/auth`, {
       method: "GET",
       headers: { "x-api-key": apiKey },
     });
@@ -51,12 +48,6 @@ async function exchangeApiKey(
       throw new AuthRequestError(
         "API key authentication failed. Verify the API key is valid.",
         401
-      );
-    }
-    if (response.status === 400) {
-      throw new AuthRequestError(
-        "Invalid workspace ID for this API key. Verify the workspace ID.",
-        400
       );
     }
     throw new AuthRequestError(
@@ -103,18 +94,12 @@ function expiryFromToken(token: string): number {
 }
 
 /** Validate + persist an API key (exchanging it for a bearer). Throws on invalid credentials. */
-export async function setApiKeyCredentials(
-  apiKey: string,
-  workspaceId: string
-): Promise<void> {
+export async function setApiKeyCredentials(apiKey: string): Promise<void> {
   const trimmedKey = apiKey.trim();
-  const trimmedWorkspaceId = workspaceId.trim();
   if (!trimmedKey) throw new AuthRequestError("API key is required");
-  if (!trimmedWorkspaceId)
-    throw new AuthRequestError("Workspace ID is required");
 
-  const token = await exchangeApiKey(trimmedKey, trimmedWorkspaceId);
-  await setApiKey(trimmedKey, trimmedWorkspaceId);
+  const token = await exchangeApiKey(trimmedKey);
+  await setApiKey(trimmedKey);
   await setApiKeyBearerCache(token, expiryFromToken(token));
 }
 
@@ -122,15 +107,12 @@ export class ApiKeyAuthProvider implements AuthProvider {
   readonly type = "api-key" as const;
 
   /** A valid cached bearer, or a freshly exchanged one. */
-  private async getBearer(
-    apiKey: string,
-    workspaceId: string
-  ): Promise<string> {
+  private async getBearer(apiKey: string): Promise<string> {
     const cached = await getApiKeyBearerCache();
     if (cached && Date.now() < cached.expiresAt - REFRESH_BEFORE_EXPIRY_MS) {
       return cached.token;
     }
-    const token = await exchangeApiKey(apiKey, workspaceId);
+    const token = await exchangeApiKey(apiKey);
     await setApiKeyBearerCache(token, expiryFromToken(token));
     return token;
   }
@@ -139,26 +121,18 @@ export class ApiKeyAuthProvider implements AuthProvider {
     const apiKey = await getApiKey();
     if (!apiKey) return { status: "unauthenticated" };
 
-    const workspaceId = await getWorkspaceId();
-    if (!workspaceId) {
-      throw new AuthRequestError(
-        "Workspace ID is required when using an API key.",
-        400
-      );
-    }
-
-    const token = await this.getBearer(apiKey, workspaceId);
+    const token = await this.getBearer(apiKey);
     const decoded = decodeJwt(token);
     return {
       status: "authenticated",
       credentials: {
         accessToken: token,
-        workspaceId: decoded?.claims.workspaceId ?? workspaceId,
+        workspaceId: decoded?.claims.workspaceId,
         expiresAt: expiryFromToken(token),
       },
       identity: {
         email: decoded?.claims.email,
-        workspaceId: decoded?.claims.workspaceId ?? workspaceId,
+        workspaceId: decoded?.claims.workspaceId,
       },
     };
   }
@@ -175,18 +149,6 @@ export class ApiKeyAuthProvider implements AuthProvider {
     const apiKey = await getApiKey();
     if (!apiKey) throw new AuthRequestError("API key is not configured", 401);
     return { "x-api-key": apiKey };
-  }
-
-  /** The backend validates the key against a `workspaceId` query param. */
-  async getApiQueryParams(): Promise<Record<string, string>> {
-    const workspaceId = await getWorkspaceId();
-    if (!workspaceId) {
-      throw new AuthRequestError(
-        "Workspace ID is required when using an API key.",
-        400
-      );
-    }
-    return { workspaceId };
   }
 
   async clearCredentials(): Promise<void> {

@@ -12,13 +12,14 @@ import {
   getMethod,
   getSessionBearerCache,
   getToken,
-  getWorkspaceId,
   setApiKey,
   setApiKeyBearerCache,
   setMethod,
   setSessionBearerCache,
   setToken,
 } from "../../../lib/auth/storage";
+
+const LEGACY_WORKSPACE_ID_KEY = "auth.workspaceId";
 
 /**
  * Wiring test for the exposed `refreshAccessToken()`: with no configured method it targets
@@ -66,17 +67,20 @@ describe("refreshAccessToken", () => {
 /** Persist credential material for every method, plus a stale token from a prior method. */
 async function seedAllCredentials() {
   await setToken("jwt-token");
-  await setApiKey("api-key", "ws-9");
+  await setApiKey("api-key");
   await setApiKeyBearerCache("api-bearer", Date.now() + 60_000);
   await setSessionBearerCache("session-bearer", Date.now() + 60_000);
+  // Legacy workspace id from before it was resolved server-side from the key.
+  await browser.storage.local.set({ [LEGACY_WORKSPACE_ID_KEY]: "ws-9" });
 }
 
 async function expectNoCredentialsRemain() {
   expect(await getToken()).toBeNull();
   expect(await getApiKey()).toBeNull();
-  expect(await getWorkspaceId()).toBeNull();
   expect(await getApiKeyBearerCache()).toBeNull();
   expect(await getSessionBearerCache()).toBeNull();
+  const legacy = await browser.storage.local.get(LEGACY_WORKSPACE_ID_KEY);
+  expect(legacy[LEGACY_WORKSPACE_ID_KEY]).toBeUndefined();
 }
 
 describe("credential cleanup on method switch / sign-out", () => {

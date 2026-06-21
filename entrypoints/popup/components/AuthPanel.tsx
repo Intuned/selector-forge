@@ -14,7 +14,6 @@ export function AuthPanel({
   onAuthChange: (s: AuthState) => void;
 }) {
   const [apiKey, setApiKey] = useState("");
-  const [workspaceId, setWorkspaceId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(
@@ -43,16 +42,15 @@ export function AuthPanel({
   const saveApiKey = useCallback(async () => {
     setError(null);
     const key = apiKey.trim();
-    const ws = workspaceId.trim();
-    if (!key || !ws) {
-      setError("Enter both an API key and a workspace ID.");
+    if (!key) {
+      setError("Enter an API key.");
       return;
     }
     setSaving(true);
     try {
       const state = await messagingClient.sendMessageToBackground(
         BackgroundMessageType.SetApiKey,
-        { apiKey: key, workspaceId: ws }
+        { apiKey: key }
       );
       setApiKey("");
       onAuthChange(state);
@@ -61,7 +59,7 @@ export function AuthPanel({
     } finally {
       setSaving(false);
     }
-  }, [apiKey, workspaceId, onAuthChange]);
+  }, [apiKey, onAuthChange]);
 
   return (
     <div className={styles.authPanel}>
@@ -117,18 +115,6 @@ export function AuthPanel({
             >
               Don’t have an API key? Create one →
             </button>
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Workspace ID</span>
-              <input
-                id="workspace-id-input"
-                className={styles.input}
-                type="text"
-                autoComplete="off"
-                placeholder="00000000-0000-0000-0000-000000000000"
-                value={workspaceId}
-                onChange={(e) => setWorkspaceId(e.target.value)}
-              />
-            </label>
             {error && (
               <p id="api-key-error" className={styles.errorText}>
                 {error}

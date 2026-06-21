@@ -5,8 +5,8 @@ import { getApiHeaders, getApiQueryParams } from "./manager";
  * explicit `x-api-key` / Bearer headers when configured (cookies omitted so the
  * explicit credential stays authoritative — the backend checks the session
  * cookie first), otherwise no auth headers and `credentials: "include"` so the
- * browser injects the session cookie. The api-key method's `workspaceId` query
- * param is appended automatically. Defaults the body content type to JSON.
+ * browser injects the session cookie. Any query params the active method needs
+ * are appended automatically. Defaults the body content type to JSON.
  *
  * Throws AuthRequestError when signed out / unconfigured; callers surface the
  * message.
