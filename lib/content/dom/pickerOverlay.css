@@ -21,8 +21,9 @@
   position: fixed;
   pointer-events: none;
   box-sizing: border-box;
-  transition: top 60ms linear, left 60ms linear, width 60ms linear,
-    height 60ms linear;
+  /* No position transition: the boxes are repositioned on every scroll event, and
+     a transition makes them visibly trail the page as it scrolls (badly so with
+     nested scrollbars). Snapping keeps them locked to their element. */
 }
 .hover-box {
   background: rgba(200, 255, 46, 0.12);
@@ -139,6 +140,64 @@
   /* Push the action buttons to the right edge so the wider bar reads as a
      real toolbar (label left, actions right). */
   margin-right: auto;
+}
+/* Two-step progress (generate → judge) shown after the picks are submitted.
+   State classes are `prog-`prefixed so they don't pick up the toolbar's `.done`
+   button styling. */
+.toolbar .prog {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.toolbar .prog-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+/* active: the step running now */
+.toolbar .prog-step.prog-active {
+  color: var(--fg);
+}
+/* done: a finished step — faded + struck through */
+.toolbar .prog-step.prog-done {
+  color: var(--muted-soft);
+  text-decoration: line-through;
+}
+/* upcoming: not started yet */
+.toolbar .prog-step.prog-upcoming {
+  color: var(--muted);
+}
+.toolbar .prog-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  flex: 0 0 auto;
+}
+.toolbar .prog-step.prog-active .prog-dot {
+  background: #65a30d;
+  animation: prog-pulse 1s ease-in-out infinite;
+}
+.toolbar .prog-sep {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  flex: 0 0 auto;
+}
+@keyframes prog-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
 }
 .toolbar .kbd {
   font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

@@ -1,0 +1,253 @@
+/*
+ * Compact HistoryItem design variants for Ladle review. Tokens (--primary,
+ * --primary-tint, --muted, --border, …) come from the popup's global :root in
+ * ui.module.css, which loads via the real HistoryItem imported by the story.
+ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+/* ── shared bits ────────────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--primary-tint);
+  border-radius: 999px;
+}
+
+.selector {
+  flex: 1;
+  min-width: 0;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--muted-soft);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.iconBtn:hover {
+  color: var(--ink);
+  border-color: var(--primary);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 10.5px;
+  color: var(--muted-soft);
+}
+.metaHost {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dot {
+  flex: none;
+}
+
+.feedback {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.fbBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  color: var(--muted-soft);
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.fbBtn:hover {
+  color: var(--fg);
+  background: var(--track);
+}
+
+/* ── card shells (one per variant) ──────────────────────────────────────── */
+
+.card {
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* A — two rows: identity+selector+actions, then meta+feedback */
+.cardA {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* B — one dense row; site/time demoted to the row's title tooltip */
+.cardB {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 10px;
+}
+.rowB {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.matchInline {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--muted-soft);
+  white-space: nowrap;
+}
+
+/* C — selector first, then a single small meta line */
+.cardC {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+}
+.selectorC {
+  flex: 1;
+  min-width: 0;
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* When the selector overflows, it becomes a click target that toggles the full
+   value panel below (alongside the chevron) — so a long selector stays readable
+   without making every card tall. */
+.selectorClickable {
+  cursor: pointer;
+}
+
+.selectorPanel {
+  display: block;
+  padding: 8px 10px;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--fg);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* chevron expand toggle — reuses .iconBtn for sizing */
+.chev svg {
+  transition: transform 0.15s ease;
+}
+.chevOpen svg {
+  transform: rotate(180deg);
+}
+
+/* ── "Latest" highlight treatments (modifiers on .card) ─────────────────── */
+
+/* T1 — left accent bar + faint tint */
+.latestBar {
+  position: relative;
+  background: var(--primary-tint);
+  border-color: var(--primary-ring);
+}
+.latestBar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: var(--primary);
+}
+
+/* T2 — lime border + soft ring */
+.latestRing {
+  background: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+/* T3 — tint only */
+.latestTint {
+  background: var(--primary-tint);
+  border-color: var(--primary-ring);
+}
+
+.latestPill {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--primary-fg);
+  background: var(--primary);
+  border-radius: 999px;
+}
+.latestDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* layout helpers for the comparison galleries */
+.compareRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+.compareCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.compareLabel {
+  font: 600 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #111;
+}
+.compareSub {
+  font: 11px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #666;
+  margin-top: -4px;
+}

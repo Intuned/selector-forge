@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import type { AuthState } from "@/lib/auth";
 import { BackgroundMessageType } from "@/lib/messaging";
+import { getApiKeysUrl } from "@/lib/config";
 import styles from "../ui.module.css";
 import { KeyIcon, SignInIcon } from "../icons";
 import { messagingClient } from "../messagingClient";
@@ -29,6 +30,13 @@ export function AuthPanel({
       BackgroundMessageType.SignIn,
       undefined as never
     );
+  }, []);
+
+  // Open the workspace's API-keys page so the user can create a key, then close
+  // the popup (mirrors the header's settings link).
+  const openApiKeys = useCallback(async () => {
+    await browser.tabs.create({ url: await getApiKeysUrl(), active: true });
+    window.close();
   }, []);
 
   const saveApiKey = useCallback(async () => {
@@ -99,6 +107,14 @@ export function AuthPanel({
                 onChange={(e) => setApiKey(e.target.value)}
               />
             </label>
+            <button
+              id="create-api-key"
+              type="button"
+              className={styles.link}
+              onClick={openApiKeys}
+            >
+              Don’t have an API key? Create one →
+            </button>
             {error && (
               <p id="api-key-error" className={styles.errorText}>
                 {error}

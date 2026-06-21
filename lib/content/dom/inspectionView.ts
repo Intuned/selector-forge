@@ -15,6 +15,16 @@ const NOISE_SELECTOR = "script, style, noscript, link, meta";
 const SIBLING_RADIUS = 3;
 const COLLAPSED_MARKER = "…";
 
+const GEOMETRY_ATTRS = new Set([
+  "d",
+  "points",
+  "transform",
+  "viewBox",
+  "preserveAspectRatio",
+  "gradientTransform",
+  "patternTransform",
+]);
+
 export interface InspectionTarget {
   el: Element;
   id: string;
@@ -89,9 +99,13 @@ function truncateAttrs(root: Element): void {
   const all = [root, ...Array.from(root.querySelectorAll("*"))];
   for (const el of all) {
     for (const attr of Array.from(el.attributes)) {
-      if (attr.value.length > MAX_ATTR_LENGTH) {
-        el.setAttribute(attr.name, attr.value.slice(0, MAX_ATTR_LENGTH) + "…");
-      }
+      if (attr.value.length <= MAX_ATTR_LENGTH) continue;
+      el.setAttribute(
+        attr.name,
+        GEOMETRY_ATTRS.has(attr.name)
+          ? ""
+          : attr.value.slice(0, MAX_ATTR_LENGTH) + COLLAPSED_MARKER
+      );
     }
   }
 }
