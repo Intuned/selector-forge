@@ -77,8 +77,11 @@ export async function fetchSession(): Promise<SessionTokens | null> {
 
 /** Opens the login page; completing it sets the session cookie. */
 export async function openSignInPage(): Promise<void> {
+  const returnTo = "/?extensionLogin=success";
   await browser.tabs.create({
-    url: `${await getApiBase()}/api/auth/login`,
+    url: `${await getApiBase()}/api/auth/login?returnTo=${encodeURIComponent(
+      returnTo
+    )}`,
     active: true,
   });
 }
