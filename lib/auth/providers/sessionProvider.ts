@@ -77,8 +77,13 @@ export async function fetchSession(): Promise<SessionTokens | null> {
 
 /** Opens the login page; completing it sets the session cookie. */
 export async function openSignInPage(): Promise<void> {
+  // Stamp the redirect so the web app only shows the "extension connected"
+  // dialog for a sign-in that just happened, not a stale/shared/bookmarked URL.
+  const returnTo = `/?extensionLogin=success&extensionLoginTs=${Date.now()}`;
   await browser.tabs.create({
-    url: `${await getApiBase()}/api/auth/login`,
+    url: `${await getApiBase()}/api/auth/login?returnTo=${encodeURIComponent(
+      returnTo
+    )}`,
     active: true,
   });
 }
