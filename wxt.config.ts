@@ -1,16 +1,5 @@
 import { defineConfig } from "wxt";
 
-// Pins the Chrome extension ID to `kagnpahelafjcmmbbcinolcjldclchnc` for
-// unpacked/--load-extension installs, so external tooling can find the
-// background worker by URL prefix. Chrome derives the ID from a hash of this
-// RSA public key, so the value must be the key itself — it cannot be a
-// friendly name. Keep in sync with SELECTOR_EXTENSION_ID in
-// apps/intuned-cli/src/lib/browser/extensionTransport/constants.ts.
-// Public key only; the private key (needed solely for .crx packing) lives
-// in 1Password ("selector-extension signing key").
-const intunedSelectorKey =
-  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqlaqz8lsLEWGz3ETXFvNS82pmHsnDu/FZ7M+17Owi+Vt/QUkEv8REeQkOm4PiHqZHmyHsPXjAdADCJBWdXFAWWh9hIBxCxcczN/kkrvIY6GSFausVrG5thvmRhU4l74FbLBwX0qfHJ9UXfkmxDbjVL+lDQACZfmgpJpuHTw/P8QYR9lHc9CVpi5bYrwTozKwN4qNhGQCuMA148bKNXIa7ldt7pQ8xHdwziD9Q4ZIFOESjdFkHn/VlFR/7gtd2ZddTBOmIGw5r+no6u+FDQ61FXQ47yyyYP2DBSU+wTgho62C1AGQd5VE3f+2YYvxET62Bv5JqZV6M/sJgZ6g6hrFAwIDAQAB";
-
 // Chrome MV3 + Firefox MV3.
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
@@ -54,8 +43,6 @@ export default defineConfig({
           id: "selector@intunedhq.com",
         },
       };
-    } else {
-      manifest.key = intunedSelectorKey;
     }
 
     return manifest;
