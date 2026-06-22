@@ -61,6 +61,7 @@ jobs:
           name: selector-forge-${{ steps.meta.outputs.version }}
           path: .output/*.zip
           if-no-files-found: error
+          include-hidden-files: true # .output is a dotfile dir; v4 skips hidden paths by default
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
