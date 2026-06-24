@@ -80,10 +80,12 @@ export async function openSignInPage(): Promise<void> {
   // Stamp the redirect so the web app only shows the "extension connected"
   // dialog for a sign-in that just happened, not a stale/shared/bookmarked URL.
   const returnTo = `/?extensionLogin=success&extensionLoginTs=${Date.now()}`;
+  // Tag attribution as the extension; /api/auth/login forwards utm_source into
+  // the Auth0 /authorize request, which echoes it back to the onboarding page.
   await browser.tabs.create({
     url: `${await getApiBase()}/api/auth/login?returnTo=${encodeURIComponent(
       returnTo
-    )}`,
+    )}&utm_source=Extension`,
     active: true,
   });
 }
