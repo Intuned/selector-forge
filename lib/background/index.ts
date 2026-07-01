@@ -11,3 +11,8 @@ export {
 export { backgroundHandlers } from "./handlers";
 export { registerSessionTabWatcher } from "./sessionTabWatcher";
 export { installIntunedBridge, type BridgeResult } from "./bridge";
+export {
+  registerPickerContentScript,
+  ensureInjectedContentScript,
+  injectIntoOpenTabs,
+} from "./ensureContentScript";

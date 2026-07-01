@@ -9,8 +9,13 @@ import { createContentMessagingClient } from "@/lib/messaging";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
+  registration: "runtime",
   runAt: "document_idle",
   main: () => {
+    const w = window as Window & { __selectorForgePickerInitialized?: boolean };
+    if (w["__selectorForgePickerInitialized"]) return;
+    w["__selectorForgePickerInitialized"] = true;
+
     const contextMenu = new ContextMenuTracker();
     contextMenu.addContextMenuListener();
     const picker = new PickerSession(contextMenu);
