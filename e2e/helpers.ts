@@ -9,6 +9,12 @@ declare const chrome: {
     };
   };
   tabs: { query: (q: { url?: string }) => Promise<Array<{ id?: number }>> };
+  scripting: {
+    executeScript: (injection: {
+      target: { tabId: number };
+      files: string[];
+    }) => Promise<unknown>;
+  };
 };
 
 // ─── service worker & extension id ───────────────────────────────────────────
@@ -230,6 +236,19 @@ export async function openSamplePage(
     const tabs = await chrome.tabs.query({ url: matchUrl });
     return tabs[0]?.id;
   }, fileUrl)) as number;
+
+  // The picker content script uses `registration: "runtime"`, so it isn't in
+  // the manifest — the background registers it for future page loads, but that
+  // races with this freshly opened tab. Inject it explicitly so it's
+  // deterministically present (the context-menu tracker must observe the
+  // right-click, which happens before any session starts). Re-injection is a
+  // guarded no-op (see entrypoints/content.ts).
+  await sw.evaluate(async (tid) => {
+    await chrome.scripting.executeScript({
+      target: { tabId: tid },
+      files: ["/content-scripts/content.js"],
+    });
+  }, tabId);
 
   return { page, tabId, url: fileUrl };
 }

@@ -12,7 +12,12 @@ function tab(partial: Partial<Tab>): Tab {
 }
 
 describe("handleStartPickerSessionForTab", () => {
-  beforeEach(() => fakeBrowser.reset());
+  beforeEach(() => {
+    fakeBrowser.reset();
+    // Session start injects the picker before messaging it; fakeBrowser has no
+    // executeScript, so default it to succeed.
+    vi.spyOn(fakeBrowser.scripting, "executeScript").mockResolvedValue([]);
+  });
 
   it("targets an explicit tabId and derives page context from the tab", async () => {
     vi.spyOn(fakeBrowser.tabs, "get").mockResolvedValue(

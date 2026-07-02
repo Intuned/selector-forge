@@ -23,7 +23,12 @@ import {
  */
 
 describe("handleStartPickerSession", () => {
-  beforeEach(() => fakeBrowser.reset());
+  beforeEach(() => {
+    fakeBrowser.reset();
+    // Every session start now injects the picker before messaging it; fakeBrowser
+    // has no executeScript, so default it to succeed. Failure cases override.
+    vi.spyOn(fakeBrowser.scripting, "executeScript").mockResolvedValue([]);
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it("resolves the tabId from the message sender (popup case), sets meta + initial state, dispatches ActivatePicker, returns the new sessionId", async () => {
@@ -122,6 +127,69 @@ describe("handleStartPickerSession", () => {
     expect(second.sessionId).not.toBe(first.sessionId);
     expect(h.state.get()?.sessionId).toBe(second.sessionId);
     expect(h.state.get()?.sessionId).not.toBe(firstStored);
+  });
+
+  it("injects the picker into the target tab before activating (covers tabs that predate the extension)", async () => {
+    const h = createHarness({ sender: senderFromTab(42) });
+    // Prove ordering: at injection time, nothing has been messaged yet.
+    const executeScript = vi
+      .mocked(fakeBrowser.scripting.executeScript)
+      .mockImplementation(async () => {
+        expect(h.messaging.contentCalls).toEqual([]);
+        return [];
+      });
+
+    const { sessionId } = await handleStartPickerSession(
+      { mode: "single", page: PAGE },
+      h.context
+    );
+
+    expect(executeScript).toHaveBeenCalledWith({
+      target: { tabId: 42 },
+      files: ["/content-scripts/content.js"],
+    });
+    // Then ActivatePicker was dispatched to that tab and the session stands.
+    expect(h.messaging.contentCalls).toEqual([
+      {
+        tabId: 42,
+        type: ContentMessageType.ActivatePicker,
+        data: { sessionId, mode: "single", status: "picking", targets: [] },
+      },
+    ]);
+    expect(h.state.get()).toMatchObject({ sessionId, status: "picking" });
+  });
+
+  it("clears the seeded session and throws when injection fails", async () => {
+    const h = createHarness({ sender: senderFromTab(42) });
+    vi.mocked(fakeBrowser.scripting.executeScript).mockRejectedValue(
+      new Error("Cannot access contents of the page")
+    );
+
+    await expect(
+      handleStartPickerSession({ mode: "single", page: PAGE }, h.context)
+    ).rejects.toThrow(/could not attach/i);
+
+    // No ActivatePicker was attempted, and no zombie "picking" session remains.
+    expect(h.messaging.contentCalls).toEqual([]);
+    expect(h.state.get()).toBeNull();
+    expect(h.state.getMeta()).toBeNull();
+  });
+
+  it("clears the seeded session and throws when activation fails after injection", async () => {
+    const h = createHarness({ sender: senderFromTab(42) });
+    h.messaging.rejectContent(
+      ContentMessageType.ActivatePicker,
+      new Error("page threw during activation")
+    );
+
+    await expect(
+      handleStartPickerSession({ mode: "single", page: PAGE }, h.context)
+    ).rejects.toThrow(/could not attach/i);
+
+    // Injection was attempted before the failing activation.
+    expect(fakeBrowser.scripting.executeScript).toHaveBeenCalled();
+    expect(h.state.get()).toBeNull();
+    expect(h.state.getMeta()).toBeNull();
   });
 });
 

@@ -1,8 +1,10 @@
 import { AgentLoopController } from "@/lib/agent";
 import {
   backgroundHandlers,
+  injectIntoOpenTabs,
   installIntunedBridge,
   registerBackgroundHandlers,
+  registerPickerContentScript,
   registerSessionTabWatcher,
   type BackgroundContext,
 } from "@/lib/background";
@@ -33,6 +35,25 @@ export default defineBackground(() => {
   registerBackgroundHandlers(backgroundHandlers, context);
   registerSessionTabWatcher(context);
   registerContextMenus(context);
+
+  void registerPickerContentScript().catch((error) => {
+    console.error(
+      "[selector-extension] failed to register picker content script; the " +
+        "context-menu tracker will not arm on future page loads",
+      error
+    );
+  });
+
+  const sweepOpenTabs = (): void => {
+    void injectIntoOpenTabs().catch((error) => {
+      console.error(
+        "[selector-extension] open-tab picker injection sweep failed",
+        error
+      );
+    });
+  };
+  browser.runtime.onInstalled.addListener(sweepOpenTabs);
+  browser.runtime.onStartup.addListener(sweepOpenTabs);
 
   // Production bridge for external callers over CDP (Intuned CLI).
   installIntunedBridge(backgroundHandlers, context);
